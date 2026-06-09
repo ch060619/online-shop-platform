@@ -36,6 +36,8 @@
         <spotbugs-maven-plugin.version>4.8.3.1</spotbugs-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
         <dependency-check-maven.version>9.0.9</dependency-check-maven.version>
+        <dependency-check.failOnError>false</dependency-check.failOnError>
+        <dependency-check.nvdApiKey></dependency-check.nvdApiKey>
     </properties>
 
     <!-- ===== 依赖管理（BOM 导入） ===== -->
@@ -287,6 +289,9 @@
                                 <configuration>
                                     <!-- CVSS 评分 ≥ 7（高危/严重）时阻断构建 -->
                                     <failBuildOnCVSS>7</failBuildOnCVSS>
+                                    <!-- NVD 临时不可用、限流或未配置 API Key 时不阻断 CI -->
+                                    <failOnError>${dependency-check.failOnError}</failOnError>
+                                    <nvdApiKey>${dependency-check.nvdApiKey}</nvdApiKey>
                                     <!-- 报告输出格式 -->
                                     <format>HTML</format>
                                     <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>

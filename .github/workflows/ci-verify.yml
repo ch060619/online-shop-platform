@@ -71,4 +71,12 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Run security scan
-        run: mvn verify -Psecurity-scan -B
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -n "$NVD_API_KEY" ]; then
+            mvn verify -Psecurity-scan -Ddependency-check.nvdApiKey="$NVD_API_KEY" -B
+          else
+            echo "NVD_API_KEY is not configured; dependency-check update errors will not fail this CI job."
+            mvn verify -Psecurity-scan -B
+          fi
