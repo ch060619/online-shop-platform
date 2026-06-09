@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.CreateOrderRequest;
 import com.example.shop.domain.vo.OrderSummaryVO;
 import com.example.shop.domain.vo.OrderVO;
@@ -32,11 +33,16 @@ class OrderControllerTest {
     @MockBean
     private OrderService orderService;
 
+    @MockBean
+    private TokenService tokenService;
+
     @Test
     void should_returnOrder_when_createOrderValid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
         when(orderService.createOrder(ArgumentMatchers.any(CreateOrderRequest.class))).thenReturn(order());
 
         mockMvc.perform(post("/api/orders")
+                        .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"receiverName\":\"张三\",\"receiverPhone\":\"13800000000\","
                                 + "\"receiverAddress\":\"上海市\"}"))
@@ -50,11 +56,19 @@ class OrderControllerTest {
         summary.setId(1L);
         summary.setOrderNo("NO1");
         summary.setTotalAmount(new BigDecimal("20.00"));
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
         when(orderService.listOrders()).thenReturn(Collections.singletonList(summary));
 
-        mockMvc.perform(get("/api/orders"))
+        mockMvc.perform(get("/api/orders").header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].orderNo").value("NO1"));
+    }
+
+    @Test
+    void should_return401_when_requestOrdersWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/orders"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     private OrderVO order() {

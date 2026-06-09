@@ -37,9 +37,12 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { cartApi, productApi } from '../api'
+import { isAuthenticated } from '../auth'
 
+const router = useRouter()
 const products = ref([])
 const categories = ['数码配件', '运动户外', '生活家居', '服饰鞋包']
 const filters = reactive({
@@ -54,6 +57,10 @@ const loadProducts = async () => {
 }
 
 const addToCart = async (productId) => {
+  if (!isAuthenticated()) {
+    router.push({ path: '/login', query: { redirect: '/products' } })
+    return
+  }
   await cartApi.add({ productId, quantity: 1 })
   ElMessage.success('已加入购物车')
 }

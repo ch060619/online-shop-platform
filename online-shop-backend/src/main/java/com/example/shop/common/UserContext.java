@@ -27,7 +27,7 @@ public final class UserContext {
     public static Long getCurrentUserId() {
         Long userId = CURRENT_USER.get();
         if (userId == null) {
-            return 1L;
+            throw new IllegalStateException("当前请求未登录");
         }
         return userId;
     }

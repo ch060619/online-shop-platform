@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.AddCartItemRequest;
 import com.example.shop.domain.vo.CartVO;
 import com.example.shop.service.CartService;
@@ -29,22 +30,28 @@ class CartControllerTest {
     @MockBean
     private CartService cartService;
 
+    @MockBean
+    private TokenService tokenService;
+
     @Test
     void should_returnCart_when_requestCartApi() throws Exception {
         CartVO cart = new CartVO();
         cart.setTotalQuantity(0);
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
         when(cartService.getCurrentCart()).thenReturn(cart);
 
-        mockMvc.perform(get("/api/cart"))
+        mockMvc.perform(get("/api/cart").header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalQuantity").value(0));
     }
 
     @Test
     void should_returnCart_when_addItemValid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
         when(cartService.addItem(ArgumentMatchers.any(AddCartItemRequest.class))).thenReturn(new CartVO());
 
         mockMvc.perform(post("/api/cart/items")
+                        .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"productId\":1,\"quantity\":2}"))
                 .andExpect(status().isOk())
@@ -53,10 +60,19 @@ class CartControllerTest {
 
     @Test
     void should_return400_when_addItemInvalid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
         mockMvc.perform(post("/api/cart/items")
+                        .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"productId\":1,\"quantity\":0}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    void should_return401_when_requestCartWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/cart"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
     }
 }

@@ -1,11 +1,9 @@
 package com.example.shop.interceptor;
 
-import com.example.shop.common.UserContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -18,17 +16,6 @@ public class RequestLogInterceptor implements HandlerInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestLogInterceptor.class);
     private static final String START_TIME_ATTRIBUTE = "requestStartTime";
 
-    private final Long currentUserId;
-
-    /**
-     * 创建请求日志拦截器。
-     *
-     * @param currentUserId 实验环境固定用户 ID
-     */
-    public RequestLogInterceptor(@Value("${shop.current-user-id:1}") Long currentUserId) {
-        this.currentUserId = currentUserId;
-    }
-
     /**
      * 请求进入 Controller 前记录访问基础信息。
      *
@@ -40,7 +27,6 @@ public class RequestLogInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         request.setAttribute(START_TIME_ATTRIBUTE, System.currentTimeMillis());
-        UserContext.setCurrentUserId(currentUserId);
         LOGGER.info("request method={}, path={}, query={}",
                 request.getMethod(), request.getRequestURI(), request.getQueryString());
         return true;
@@ -66,6 +52,5 @@ public class RequestLogInterceptor implements HandlerInterceptor {
         }
         LOGGER.info("response method={}, path={}, status={}, elapsedMs={}",
                 request.getMethod(), request.getRequestURI(), response.getStatus(), elapsed);
-        UserContext.clear();
     }
 }

@@ -1,9 +1,18 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { clearAuth, getToken } from './auth'
 
 const http = axios.create({
   baseURL: '/api',
   timeout: 10000
+})
+
+http.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 http.interceptors.response.use(
@@ -11,6 +20,13 @@ http.interceptors.response.use(
     const payload = response.data
     if (payload && payload.code && payload.code !== 200) {
       ElMessage.error(payload.message || '请求失败')
+      if (payload.code === 401) {
+        clearAuth()
+        const redirect = encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = `/login?redirect=${redirect}`
+        }
+      }
       return Promise.reject(new Error(payload.message || '请求失败'))
     }
     return payload ? payload.data : response.data
@@ -20,6 +36,10 @@ http.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+export const authApi = {
+  login: (data) => http.post('/auth/login', data)
+}
 
 export const productApi = {
   list: (params) => http.get('/products', { params }),

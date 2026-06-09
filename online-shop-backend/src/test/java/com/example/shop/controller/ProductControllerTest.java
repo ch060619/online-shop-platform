@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.ProductSearchRequest;
 import com.example.shop.domain.vo.ProductVO;
 import com.example.shop.service.ProductService;
@@ -28,6 +29,9 @@ class ProductControllerTest {
 
     @MockBean
     private ProductService productService;
+
+    @MockBean
+    private TokenService tokenService;
 
     @Test
     void should_returnProducts_when_requestListApi() throws Exception {

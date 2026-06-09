@@ -5,18 +5,31 @@ import CartPage from './views/CartPage.vue'
 import CheckoutPage from './views/CheckoutPage.vue'
 import OrderList from './views/OrderList.vue'
 import OrderDetail from './views/OrderDetail.vue'
+import LoginPage from './views/LoginPage.vue'
+import { isAuthenticated } from './auth'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', redirect: '/products' },
+    { path: '/login', component: LoginPage },
     { path: '/products', component: ProductList },
     { path: '/products/:id', component: ProductDetail },
-    { path: '/cart', component: CartPage },
-    { path: '/checkout', component: CheckoutPage },
-    { path: '/orders', component: OrderList },
-    { path: '/orders/:id', component: OrderDetail }
+    { path: '/cart', component: CartPage, meta: { requiresAuth: true } },
+    { path: '/checkout', component: CheckoutPage, meta: { requiresAuth: true } },
+    { path: '/orders', component: OrderList, meta: { requiresAuth: true } },
+    { path: '/orders/:id', component: OrderDetail, meta: { requiresAuth: true } }
   ]
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  if (to.path === '/login' && isAuthenticated()) {
+    return to.query.redirect || '/products'
+  }
+  return true
 })
 
 export default router

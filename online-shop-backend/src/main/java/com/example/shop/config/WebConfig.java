@@ -1,5 +1,6 @@
 package com.example.shop.config;
 
+import com.example.shop.interceptor.AuthInterceptor;
 import com.example.shop.interceptor.RequestLogInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -13,14 +14,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final RequestLogInterceptor requestLogInterceptor;
+    private final AuthInterceptor authInterceptor;
 
     /**
      * 创建 Web MVC 配置。
      *
      * @param requestLogInterceptor 请求日志拦截器
+     * @param authInterceptor 登录认证拦截器
      */
-    public WebConfig(RequestLogInterceptor requestLogInterceptor) {
+    public WebConfig(RequestLogInterceptor requestLogInterceptor, AuthInterceptor authInterceptor) {
         this.requestLogInterceptor = requestLogInterceptor;
+        this.authInterceptor = authInterceptor;
     }
 
     /**
@@ -46,5 +50,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(requestLogInterceptor).addPathPatterns("/api/**");
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/api/cart", "/api/cart/**", "/api/orders", "/api/orders/**")
+                .excludePathPatterns("/api/auth/**", "/api/products/**");
     }
 }

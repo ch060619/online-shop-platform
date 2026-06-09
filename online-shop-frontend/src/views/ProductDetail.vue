@@ -20,6 +20,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { cartApi, productApi } from '../api'
+import { isAuthenticated } from '../auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +32,10 @@ const loadProduct = async () => {
 }
 
 const addToCart = async () => {
+  if (!isAuthenticated()) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } })
+    return
+  }
   await cartApi.add({ productId: product.value.id, quantity: quantity.value })
   ElMessage.success('已加入购物车')
   router.push('/cart')

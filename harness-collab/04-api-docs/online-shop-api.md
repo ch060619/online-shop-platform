@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.0  
+**文档版本**：v1.1  
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-09  
 **负责人**：@dev
@@ -11,7 +11,7 @@
 ## 概述
 
 - **基础路径**：`/api`
-- **认证方式**：实验初版使用固定用户上下文，Shiro 已接入并预留登录校验扩展点
+- **认证方式**：商品接口公开访问；登录后端返回 Bearer Token，购物车和订单接口必须携带 `Authorization: Bearer <token>`
 - **内容类型**：`application/json`
 - **统一响应**：`{ "code": 200, "message": "success", "data": ... }`
 
@@ -28,6 +28,22 @@
 
 ---
 
+## 用户认证接口
+
+| 方法 | 路径 | 描述 | 请求体 |
+|------|------|------|--------|
+| POST | `/api/auth/login` | 用户登录并签发令牌 | `{ "username": "demo", "password": "demo123" }` |
+
+**登录响应字段**：`token`、`userId`、`username`、`nickname`
+
+**调用受保护接口示例**：
+
+```http
+Authorization: Bearer eyJ...
+```
+
+---
+
 ## 购物车接口
 
 | 方法 | 路径 | 描述 | 请求体 |
@@ -40,6 +56,8 @@
 **购物车响应字段**：`items`、`totalQuantity`、`totalAmount`
 
 **购物车明细字段**：`id`、`productId`、`productName`、`category`、`price`、`quantity`、`stock`、`imageUrl`、`subtotal`
+
+> 购物车接口均需要登录令牌。
 
 ---
 
@@ -61,6 +79,8 @@
 
 **订单详情字段**：`id`、`orderNo`、`totalAmount`、`status`、`receiverName`、`receiverPhone`、`receiverAddress`、`createdAt`、`items`
 
+> 订单接口均需要登录令牌，查询结果只返回当前登录用户的数据。
+
 ---
 
 ## 错误码
@@ -69,6 +89,7 @@
 |--------|------|
 | 200 | 成功 |
 | 400 | 请求参数错误或业务校验失败 |
+| 401 | 未登录、令牌无效或令牌过期 |
 | 404 | 商品、购物车明细或订单不存在 |
 | 500 | 服务器内部错误 |
 
@@ -78,4 +99,5 @@
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.1 | 2026-06-09 | 新增用户登录、Bearer Token 认证和受保护接口说明 | @dev |
 | v1.0 | 2026-06-09 | 新增商品、购物车、订单核心接口 | @dev |

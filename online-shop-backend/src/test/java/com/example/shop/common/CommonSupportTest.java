@@ -1,6 +1,7 @@
 package com.example.shop.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.shop.exception.BusinessException;
 import org.junit.jupiter.api.AfterEach;
@@ -17,8 +18,10 @@ class CommonSupportTest {
     }
 
     @Test
-    void should_returnDefaultUserId_when_contextEmpty() {
-        assertThat(UserContext.getCurrentUserId()).isEqualTo(1L);
+    void should_throwException_when_contextEmpty() {
+        assertThatThrownBy(UserContext::getCurrentUserId)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("未登录");
     }
 
     @Test

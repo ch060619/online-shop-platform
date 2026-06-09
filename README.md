@@ -6,6 +6,7 @@
 
 - 商品列表：支持按商品名称、分类、价格区间查询商品。
 - 商品详情：查看商品价格、库存、描述等信息。
+- 用户登录：演示账号登录后获取 Bearer Token，购物车和订单接口基于 token 识别当前用户。
 - 购物车：加入商品、修改数量、删除商品、查看购物车总价。
 - 订单管理：从购物车提交订单，查看订单列表和订单详情，取消订单并回补库存。
 - 前后端联调：Vite 代理 `/api` 到后端服务，开发时无需单独处理跨域。
@@ -39,12 +40,12 @@
 .
 ├── online-shop-backend/              # Spring Boot 后端服务
 │   ├── src/main/java/com/example/shop
-│   │   ├── common/                   # 通用响应、订单状态、当前用户上下文
+│   │   ├── common/                   # 通用响应、订单状态、Token 服务、当前用户上下文
 │   │   ├── config/                   # Shiro、Web MVC 等配置
 │   │   ├── controller/               # REST API 控制器
 │   │   ├── domain/                   # DTO、Entity、VO
 │   │   ├── exception/                # 业务异常和全局异常处理
-│   │   ├── interceptor/              # 请求日志拦截器
+│   │   ├── interceptor/              # Token 认证、请求日志拦截器
 │   │   ├── repository/mapper/        # MyBatis Mapper
 │   │   └── service/                  # 业务服务接口与实现
 │   └── src/main/resources
@@ -78,6 +79,7 @@
 
 | 模块 | 方法 | 路径 | 说明 |
 |------|------|------|------|
+| 认证 | `POST` | `/api/auth/login` | 用户登录，返回 Bearer Token |
 | 商品 | `GET` | `/api/products` | 查询商品列表 |
 | 商品 | `GET` | `/api/products/{id}` | 查询商品详情 |
 | 购物车 | `GET` | `/api/cart` | 查询当前用户购物车 |
@@ -89,16 +91,30 @@
 | 订单 | `GET` | `/api/orders/{id}` | 查询订单详情 |
 | 订单 | `PUT` | `/api/orders/{id}/cancel` | 取消订单 |
 
+购物车和订单接口需要在请求头中携带：
+
+```http
+Authorization: Bearer <token>
+```
+
+演示账号：
+
+```text
+用户名：demo
+密码：demo123
+```
+
 ## 页面路由
 
 | 路径 | 页面 |
 |------|------|
+| `/login` | 用户登录 |
 | `/products` | 商品列表 |
 | `/products/:id` | 商品详情 |
-| `/cart` | 购物车 |
-| `/checkout` | 结算 |
-| `/orders` | 订单列表 |
-| `/orders/:id` | 订单详情 |
+| `/cart` | 购物车，需登录 |
+| `/checkout` | 结算，需登录 |
+| `/orders` | 订单列表，需登录 |
+| `/orders/:id` | 订单详情，需登录 |
 
 ## 环境要求
 

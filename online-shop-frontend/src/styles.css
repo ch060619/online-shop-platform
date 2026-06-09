@@ -27,6 +27,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   height: 64px;
   border-bottom: 1px solid #d8e0ec;
   background: #ffffff;
@@ -41,6 +42,7 @@ a {
 .nav {
   display: flex;
   gap: 8px;
+  flex: 1;
 }
 
 .nav a {
@@ -56,6 +58,15 @@ a {
   color: #1f66d1;
 }
 
+.user-area {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 120px;
+  gap: 8px;
+  color: #4b5c76;
+}
+
 .app-main {
   width: min(1180px, 100%);
   margin: 0 auto;
@@ -66,6 +77,29 @@ a {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.login-page {
+  display: grid;
+  min-height: calc(100vh - 136px);
+  place-items: center;
+}
+
+.login-panel {
+  width: min(360px, 100%);
+  padding: 24px;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.login-panel h1 {
+  margin: 0 0 18px;
+  font-size: 24px;
+}
+
+.login-panel .el-button {
+  width: 100%;
 }
 
 .toolbar {
@@ -235,6 +269,11 @@ a {
 
   .nav {
     width: 100%;
+  }
+
+  .user-area {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .nav a {

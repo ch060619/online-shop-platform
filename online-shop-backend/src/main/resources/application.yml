@@ -18,4 +18,6 @@ mybatis:
   type-aliases-package: com.example.shop.domain.entity
 
 shop:
-  current-user-id: 1
+  auth:
+    token-secret: online-shop-demo-secret
+    token-expire-seconds: 7200
