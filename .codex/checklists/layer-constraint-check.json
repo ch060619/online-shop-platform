@@ -1,0 +1,12 @@
+{
+  "name": "代码分层约束检查",
+  "version": "1.0.0",
+  "description": "Codex 在创建 Java 文件后，必须检查文件所在包是否符合分层架构约定",
+  "appliesWhen": {
+    "change": "fileCreated",
+    "patterns": ["**/*.java"]
+  },
+  "codexChecklist": {
+    "prompt": "检测到新建 Java 文件。请验证以下分层架构约束：\n1. 文件所在包路径是否包含合法层级关键字？\n   合法层级：controller | service | domain | repository | config | common | exception\n2. 类的依赖关系是否符合四层架构约束？\n   合法依赖方向：controller→service，service→domain，service→repository，repository→domain\n3. 是否使用了构造器注入（禁止 @Autowired 字段注入）？\n4. 是否已创建对应的 package-info.java？\n\n如发现违规，请立即修正。参考：.codex/guidance/java-engineering-standards.md"
+  }
+}

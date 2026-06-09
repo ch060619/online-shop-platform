@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    platform: sqlite
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:./online-shop.db
+    username:
+    password:

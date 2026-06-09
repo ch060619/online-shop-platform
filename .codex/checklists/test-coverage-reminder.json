@@ -1,0 +1,12 @@
+{
+  "name": "测试覆盖提醒",
+  "version": "1.0.0",
+  "description": "Codex 在业务代码文件被修改后，交付前必须确认测试文件是否同步更新",
+  "appliesWhen": {
+    "change": "fileEdited",
+    "patterns": ["**/service/**/*.java", "**/domain/**/*.java"]
+  },
+  "codexChecklist": {
+    "prompt": "检测到业务代码变更。请确认以下测试同步事项：\n1. 对应测试文件是否已同步更新？\n   测试文件路径：src/test/java/{相同包路径}/{类名}Test.java\n2. 新增方法是否已覆盖测试用例？\n3. 测试方法命名是否遵循 should_[预期行为]_when_[条件] 格式？\n4. 当前覆盖率是否满足 ≥ 80% 要求？\n\n验证命令：mvn clean verify -Pharness-new\n覆盖率报告：target/site/jacoco/index.html\n\n参考规范：.codex/guidance/testing-quality-standards.md"
+  }
+}

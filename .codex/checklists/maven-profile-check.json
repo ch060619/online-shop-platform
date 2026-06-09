@@ -1,0 +1,12 @@
+{
+  "name": "Maven Profile 继承检查",
+  "version": "1.0.0",
+  "description": "Codex 在创建或修改 pom.xml 后，必须确认是否已接入 Harness Maven Profile 配置",
+  "appliesWhen": {
+    "change": "fileCreatedOrEdited",
+    "patterns": ["**/pom.xml"]
+  },
+  "codexChecklist": {
+    "prompt": "检测到新的 pom.xml 文件创建。请确认 Harness Maven Profile 配置：\n\n新项目（Bootstrap_Mode）推荐配置：\n  执行命令：mvn clean verify -Pharness-new\n  效果：Checkstyle 严格规则（阻断构建）+ SpotBugs（阻断构建）+ JaCoCo 覆盖率 ≥ 80%\n\n历史项目（Retrofit_Mode）推荐配置：\n  执行命令：mvn clean verify -Pharness-legacy\n  效果：Checkstyle 默认规则（仅警告）+ SpotBugs（仅警告）+ JaCoCo 仅生成报告\n\n请确认：\n1. 是否需要在 pom.xml 中引用工作区根目录的 Checkstyle 和 SpotBugs 配置？\n   - config/checkstyle/checkstyle.xml（默认规则）\n   - config/checkstyle/checkstyle-strict.xml（严格规则）\n   - config/spotbugs/exclude.xml（误报排除清单）\n2. 是否需要配置 JaCoCo 插件？\n\n接入指南：harness-collab/06-adapters/bootstrap-guide.md 或 retrofit-guide.md"
+  }
+}

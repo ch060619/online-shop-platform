@@ -1,0 +1,12 @@
+{
+  "name": "API 文档同步检查",
+  "version": "1.0.0",
+  "description": "Codex 在 Controller 层文件被修改后，交付前必须核对 API 文档是否同步更新",
+  "appliesWhen": {
+    "change": "fileEdited",
+    "patterns": ["**/controller/**/*.java"]
+  },
+  "codexChecklist": {
+    "prompt": "检测到 Controller 层文件变更。请检查：\n1. 是否有新增或修改的公共 API 端点？\n2. 如有，请更新 harness-collab/04-api-docs/ 下对应的 API 文档\n3. 请同步更新 harness-collab/func.md 中的功能状态\n4. 确认所有 @RequestMapping 方法都有 @Operation 注解\n\n操作指引：参考 harness-collab/05-methodology/dev-workflow.md 第5阶段（文档同步）"
+  }
+}

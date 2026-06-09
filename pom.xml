@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ===== 项目基本信息 ===== -->
+    <groupId>com.example.harness</groupId>
+    <artifactId>spring-boot-harness-template</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Spring Boot Harness Template</name>
+    <description>
+        Spring Boot Harness 工程管理模板 — 父 POM。
+        提供三个 Maven Profile：
+          harness-new    新项目强制门禁（Checkstyle 严格 + SpotBugs + JaCoCo ≥ 80%）
+          harness-legacy 历史项目宽松门禁（仅警告，不阻断构建）
+          security-scan  OWASP 依赖漏洞扫描（可选，CVSS ≥ 7 失败）
+    </description>
+
+    <!-- ===== 全局属性 ===== -->
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Spring Boot -->
+        <spring-boot.version>3.2.0</spring-boot.version>
+
+        <!-- 插件版本 -->
+        <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
+        <spotbugs-maven-plugin.version>4.8.3.1</spotbugs-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
+        <dependency-check-maven.version>9.0.9</dependency-check-maven.version>
+    </properties>
+
+    <!-- ===== 依赖管理（BOM 导入） ===== -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ===== 插件管理（版本锁定） ===== -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven-checkstyle-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${dependency-check-maven.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <!-- ===== Maven Profiles ===== -->
+    <profiles>
+
+        <!-- ============================================================
+             Profile: harness-new
+             适用场景：新项目 Bootstrap_Mode，强制门禁，违规阻断构建
+             使用方式：mvn clean verify -Pharness-new
+             ============================================================ -->
+        <profile>
+            <id>harness-new</id>
+            <build>
+                <plugins>
+
+                    <!-- Checkstyle：严格规则，违规阻断构建 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>checkstyle-verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <configLocation>config/checkstyle/checkstyle-strict.xml</configLocation>
+                                    <failsOnError>true</failsOnError>
+                                    <violationSeverity>warning</violationSeverity>
+                                    <consoleOutput>true</consoleOutput>
+                                    <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- SpotBugs：发现 Bug 阻断构建 -->
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>spotbugs-verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <failOnError>true</failOnError>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- JaCoCo：行覆盖率 ≥ 80%，不足则阻断构建 -->
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <!-- 1. 在 initialize 阶段注入 JaCoCo Agent -->
+                            <execution>
+                                <id>jacoco-prepare-agent</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <!-- 2. 在 verify 阶段生成覆盖率报告 -->
+                            <execution>
+                                <id>jacoco-report</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                            <!-- 3. 在 verify 阶段执行覆盖率阈值检查 -->
+                            <execution>
+                                <id>jacoco-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <rules>
+                                        <rule>
+                                            <element>BUNDLE</element>
+                                            <limits>
+                                                <limit>
+                                                    <counter>LINE</counter>
+                                                    <value>COVEREDRATIO</value>
+                                                    <minimum>0.80</minimum>
+                                                </limit>
+                                            </limits>
+                                        </rule>
+                                    </rules>
+                                    <!-- 覆盖率报告路径，供开发者查阅 -->
+                                    <dataFile>${project.build.directory}/jacoco.exec</dataFile>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- ============================================================
+             Profile: harness-legacy
+             适用场景：历史项目 Retrofit_Mode，宽松门禁，仅警告不阻断
+             使用方式：mvn clean verify -Pharness-legacy
+             ============================================================ -->
+        <profile>
+            <id>harness-legacy</id>
+            <build>
+                <plugins>
+
+                    <!-- Checkstyle：默认规则，仅输出警告，不阻断构建 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>checkstyle-verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <configLocation>config/checkstyle/checkstyle.xml</configLocation>
+                                    <failsOnError>false</failsOnError>
+                                    <logViolationsToConsole>true</logViolationsToConsole>
+                                    <consoleOutput>true</consoleOutput>
+                                    <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- SpotBugs：仅输出警告，不阻断构建 -->
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>spotbugs-verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <failOnError>false</failOnError>
+                                    <excludeFilterFile>config/spotbugs/exclude.xml</excludeFilterFile>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- JaCoCo：仅生成覆盖率报告，不设阈值，不阻断构建 -->
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <!-- 1. 在 initialize 阶段注入 JaCoCo Agent -->
+                            <execution>
+                                <id>jacoco-prepare-agent</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <!-- 2. 在 verify 阶段生成覆盖率报告（无阈值约束） -->
+                            <execution>
+                                <id>jacoco-report</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- ============================================================
+             Profile: security-scan
+             适用场景：OWASP 依赖漏洞扫描（可选，CI 中 continue-on-error: true）
+             使用方式：mvn verify -Psecurity-scan
+             ============================================================ -->
+        <profile>
+            <id>security-scan</id>
+            <build>
+                <plugins>
+
+                    <!-- OWASP Dependency-Check：CVSS ≥ 7 的漏洞触发构建失败 -->
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <executions>
+                            <execution>
+                                <id>dependency-check-verify</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- CVSS 评分 ≥ 7（高危/严重）时阻断构建 -->
+                                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                                    <!-- 报告输出格式 -->
+                                    <format>HTML</format>
+                                    <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>

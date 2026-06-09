@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    checkstyle.xml — 默认规则（harness-legacy 宽松门禁）
+    适用场景：历史项目 Retrofit_Mode，仅输出警告，不阻断构建
+    对应 Profile：harness-legacy（failsOnError=false）
+
+    规则说明：
+      - 覆盖基础代码风格检查（缩进、行长、方法长度等）
+      - 覆盖基础 import 规范（禁止 * import、禁止未使用 import）
+      - 覆盖基础大括号和空格规范
+      - 不包含 Javadoc 强制检查（历史代码通常缺少 Javadoc）
+-->
+<module name="Checker">
+
+    <!-- 文件级别检查 -->
+
+    <!-- 禁止使用 Tab 缩进，统一使用空格 -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!-- 单行最大字符数：120 -->
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <!-- 忽略以 * 开头的注释行（Javadoc 注释通常较长） -->
+        <property name="ignorePattern" value="^ *\* *[^ ]+$"/>
+    </module>
+
+    <!-- 树形结构检查（逐文件解析 AST） -->
+    <module name="TreeWalker">
+
+        <!-- ===== 行长度与方法规模 ===== -->
+
+        <!-- 方法体最大行数：150 行 -->
+        <module name="MethodLength">
+            <property name="max" value="150"/>
+            <property name="countEmpty" value="false"/>
+        </module>
+
+        <!-- 方法参数最大数量：7 个 -->
+        <module name="ParameterNumber">
+            <property name="max" value="7"/>
+        </module>
+
+        <!-- ===== 代码块规范 ===== -->
+
+        <!-- 禁止空代码块（catch、finally、if、else、try、while 等） -->
+        <module name="EmptyBlock">
+            <property name="option" value="TEXT"/>
+            <property name="tokens" value="LITERAL_WHILE, LITERAL_TRY, LITERAL_FINALLY,
+                                            LITERAL_DO, LITERAL_IF, LITERAL_ELSE,
+                                            LITERAL_FOR, INSTANCE_INIT, STATIC_INIT,
+                                            LITERAL_SWITCH, LITERAL_SYNCHRONIZED"/>
+        </module>
+
+        <!-- if/else/for/while/do 必须使用大括号 -->
+        <module name="NeedBraces">
+            <property name="tokens" value="LITERAL_DO, LITERAL_ELSE, LITERAL_FOR,
+                                            LITERAL_IF, LITERAL_WHILE"/>
+        </module>
+
+        <!-- 左大括号位置：必须在语句末尾（同行） -->
+        <module name="LeftCurly">
+            <property name="option" value="eol"/>
+        </module>
+
+        <!-- 右大括号位置：必须单独一行 -->
+        <module name="RightCurly">
+            <property name="option" value="alone"/>
+            <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY,
+                                            LITERAL_IF, LITERAL_ELSE, CLASS_DEF,
+                                            METHOD_DEF, CTOR_DEF, LITERAL_FOR,
+                                            LITERAL_WHILE, LITERAL_DO,
+                                            STATIC_INIT, INSTANCE_INIT"/>
+        </module>
+
+        <!-- ===== 空格规范 ===== -->
+
+        <!-- 操作符周围必须有空格 -->
+        <module name="WhitespaceAround">
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLoops" value="true"/>
+            <property name="tokens" value="ASSIGN, BAND, BAND_ASSIGN, BOR, BOR_ASSIGN,
+                                            BSR, BSR_ASSIGN, BXOR, BXOR_ASSIGN,
+                                            COLON, DIV, DIV_ASSIGN, DO_WHILE, EQUAL,
+                                            GE, GT, LAND, LCURLY, LE, LITERAL_ASSERT,
+                                            LITERAL_CATCH, LITERAL_DO, LITERAL_ELSE,
+                                            LITERAL_FINALLY, LITERAL_FOR, LITERAL_IF,
+                                            LITERAL_RETURN, LITERAL_SWITCH,
+                                            LITERAL_SYNCHRONIZED, LITERAL_TRY,
+                                            LITERAL_WHILE, LOR, LT, MINUS,
+                                            MINUS_ASSIGN, MOD, MOD_ASSIGN, NOT_EQUAL,
+                                            PLUS, PLUS_ASSIGN, QUESTION, RCURLY,
+                                            SL, SLIST, SL_ASSIGN, SR, SR_ASSIGN,
+                                            STAR, STAR_ASSIGN, TYPE_EXTENSION_AND"/>
+        </module>
+
+        <!-- ===== Import 规范 ===== -->
+
+        <!-- 禁止未使用的 import -->
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="false"/>
+        </module>
+
+        <!-- 禁止通配符 import（import java.util.*） -->
+        <module name="AvoidStarImport"/>
+
+    </module>
+
+</module>

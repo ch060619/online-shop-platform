@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    checkstyle-strict.xml — 严格规则（harness-new 强制门禁）
+    适用场景：新项目 Bootstrap_Mode，违规阻断构建
+    对应 Profile：harness-new（failsOnError=true，violationSeverity=warning）
+
+    规则说明：
+      - 包含 checkstyle.xml 的全部基础规则
+      - 额外增加 Javadoc 强制检查（公共方法、类、字段）
+      - 额外增加可见性修饰符检查（字段必须 private）
+      - 额外增加工具类设计规范检查
+-->
+<module name="Checker">
+
+    <!-- 文件级别检查 -->
+
+    <!-- 禁止使用 Tab 缩进，统一使用空格 -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!-- 单行最大字符数：120 -->
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^ *\* *[^ ]+$"/>
+    </module>
+
+    <!-- 树形结构检查（逐文件解析 AST） -->
+    <module name="TreeWalker">
+
+        <!-- ===== 行长度与方法规模（继承自 checkstyle.xml） ===== -->
+
+        <!-- 方法体最大行数：150 行 -->
+        <module name="MethodLength">
+            <property name="max" value="150"/>
+            <property name="countEmpty" value="false"/>
+        </module>
+
+        <!-- 方法参数最大数量：7 个 -->
+        <module name="ParameterNumber">
+            <property name="max" value="7"/>
+        </module>
+
+        <!-- ===== 代码块规范（继承自 checkstyle.xml） ===== -->
+
+        <!-- 禁止空代码块 -->
+        <module name="EmptyBlock">
+            <property name="option" value="TEXT"/>
+            <property name="tokens" value="LITERAL_WHILE, LITERAL_TRY, LITERAL_FINALLY,
+                                            LITERAL_DO, LITERAL_IF, LITERAL_ELSE,
+                                            LITERAL_FOR, INSTANCE_INIT, STATIC_INIT,
+                                            LITERAL_SWITCH, LITERAL_SYNCHRONIZED"/>
+        </module>
+
+        <!-- if/else/for/while/do 必须使用大括号 -->
+        <module name="NeedBraces">
+            <property name="tokens" value="LITERAL_DO, LITERAL_ELSE, LITERAL_FOR,
+                                            LITERAL_IF, LITERAL_WHILE"/>
+        </module>
+
+        <!-- 左大括号位置：必须在语句末尾（同行） -->
+        <module name="LeftCurly">
+            <property name="option" value="eol"/>
+        </module>
+
+        <!-- 右大括号位置：必须单独一行 -->
+        <module name="RightCurly">
+            <property name="option" value="alone"/>
+            <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY,
+                                            LITERAL_IF, LITERAL_ELSE, CLASS_DEF,
+                                            METHOD_DEF, CTOR_DEF, LITERAL_FOR,
+                                            LITERAL_WHILE, LITERAL_DO,
+                                            STATIC_INIT, INSTANCE_INIT"/>
+        </module>
+
+        <!-- ===== 空格规范（继承自 checkstyle.xml） ===== -->
+
+        <!-- 操作符周围必须有空格 -->
+        <module name="WhitespaceAround">
+            <property name="allowEmptyConstructors" value="true"/>
+            <property name="allowEmptyMethods" value="true"/>
+            <property name="allowEmptyTypes" value="true"/>
+            <property name="allowEmptyLoops" value="true"/>
+            <property name="tokens" value="ASSIGN, BAND, BAND_ASSIGN, BOR, BOR_ASSIGN,
+                                            BSR, BSR_ASSIGN, BXOR, BXOR_ASSIGN,
+                                            COLON, DIV, DIV_ASSIGN, DO_WHILE, EQUAL,
+                                            GE, GT, LAND, LCURLY, LE, LITERAL_ASSERT,
+                                            LITERAL_CATCH, LITERAL_DO, LITERAL_ELSE,
+                                            LITERAL_FINALLY, LITERAL_FOR, LITERAL_IF,
+                                            LITERAL_RETURN, LITERAL_SWITCH,
+                                            LITERAL_SYNCHRONIZED, LITERAL_TRY,
+                                            LITERAL_WHILE, LOR, LT, MINUS,
+                                            MINUS_ASSIGN, MOD, MOD_ASSIGN, NOT_EQUAL,
+                                            PLUS, PLUS_ASSIGN, QUESTION, RCURLY,
+                                            SL, SLIST, SL_ASSIGN, SR, SR_ASSIGN,
+                                            STAR, STAR_ASSIGN, TYPE_EXTENSION_AND"/>
+        </module>
+
+        <!-- ===== Import 规范（继承自 checkstyle.xml） ===== -->
+
+        <!-- 禁止未使用的 import -->
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="false"/>
+        </module>
+
+        <!-- 禁止通配符 import（import java.util.*） -->
+        <module name="AvoidStarImport"/>
+
+        <!-- ===== Javadoc 强制检查（严格规则新增） ===== -->
+
+        <!--
+            公共方法必须有 Javadoc 注释
+            要求：@param（有参数时）、@return（非 void 时）、@throws（有受检异常时）
+        -->
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="public"/>
+            <property name="allowMissingParamTags" value="false"/>
+            <property name="allowMissingReturnTag" value="false"/>
+            <property name="tokens" value="METHOD_DEF, ANNOTATION_FIELD_DEF"/>
+        </module>
+
+        <!--
+            公共类、接口、枚举必须有 Javadoc 注释
+            要求：类级别 Javadoc 描述类的职责
+        -->
+        <module name="JavadocType">
+            <property name="scope" value="public"/>
+        </module>
+
+        <!--
+            公共字段必须有 Javadoc 注释
+            注意：配合 VisibilityModifier 使用，通常只有常量（static final）字段是 public
+        -->
+        <module name="JavadocVariable">
+            <property name="scope" value="public"/>
+        </module>
+
+        <!--
+            缺少 Javadoc 时报错（补充 JavadocMethod 未覆盖的场景）
+            检查公共方法缺少 Javadoc 的情况
+        -->
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="public"/>
+            <property name="minLineCount" value="0"/>
+            <property name="allowedAnnotations" value="Override, Test, BeforeEach, AfterEach,
+                                                        BeforeAll, AfterAll, ParameterizedTest"/>
+            <property name="tokens" value="METHOD_DEF, ANNOTATION_FIELD_DEF"/>
+        </module>
+
+        <!-- ===== 可见性与设计规范（严格规则新增） ===== -->
+
+        <!--
+            字段必须是 private（封装原则）
+            例外：static final 常量可以是 public
+        -->
+        <module name="VisibilityModifier">
+            <property name="protectedAllowed" value="false"/>
+            <property name="packageAllowed" value="false"/>
+            <!-- 允许 public static final 常量 -->
+            <property name="allowPublicFinalFields" value="false"/>
+            <property name="allowPublicImmutableFields" value="false"/>
+            <!-- 忽略带有特定注解的字段（如 @Inject、@Autowired、@Value） -->
+            <property name="ignoreAnnotationCanonicalNames"
+                      value="org.springframework.beans.factory.annotation.Autowired,
+                             org.springframework.beans.factory.annotation.Value,
+                             javax.inject.Inject,
+                             jakarta.inject.Inject,
+                             lombok.Getter,
+                             lombok.Setter"/>
+        </module>
+
+        <!--
+            只有私有构造器的类必须声明为 final
+            防止此类被继承（因为子类无法调用父类构造器）
+        -->
+        <module name="FinalClass"/>
+
+    </module>
+
+</module>
