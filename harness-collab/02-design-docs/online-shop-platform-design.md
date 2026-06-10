@@ -10,9 +10,9 @@
 
 ## 概述
 
-项目采用前后端分离架构。后端子项目 `online-shop-backend` 使用 Spring Boot 2.2.x、MyBatis、Hibernate Validation、Druid、Shiro 和 SQLite/MySQL 数据源配置提供 RESTful API；前端子项目 `online-shop-frontend` 使用 Vue 3、Vite、Axios、Element Plus 和 Vue Router 实现购物流程页面。
+项目采用前后端分离架构。后端子项目 `online-shop-backend` 使用 Spring Boot 3.2.x、MyBatis Plus、Jakarta Validation、Druid、Shiro Jakarta 版和 SQLite/MySQL 数据源配置提供 RESTful API；前端子项目 `online-shop-frontend` 使用 Vue 3、Vite、Axios、Element Plus 和 Vue Router 实现购物流程页面。
 
-为匹配 Harness 四层架构，后端使用 `controller`、`service`、`domain`、`repository`、`config`、`exception`、`common` 包；为满足课程要求，MyBatis Mapper 接口放在 `repository.mapper` 子包，实体、DTO、VO 分别放在 `domain.entity`、`domain.dto`、`domain.vo` 子包。
+为匹配 Harness 四层架构，后端使用 `controller`、`service`、`domain`、`repository`、`config`、`exception`、`common` 包；MyBatis Plus Mapper 接口放在 `repository.mapper` 子包，实体、DTO、VO 分别放在 `domain.entity`、`domain.dto`、`domain.vo` 子包。
 
 ---
 
@@ -27,7 +27,7 @@ graph TD
     Controller --> Service["Service 接口"]
     Service --> Impl["Service Impl\n业务逻辑"]
     Impl --> Domain["Domain\nEntity / DTO / VO"]
-    Impl --> Mapper["Repository Mapper\nMyBatis"]
+    Impl --> Mapper["Repository Mapper\nMyBatis Plus"]
     Mapper --> DB[("SQLite / MySQL")]
     Controller --> Common["Common\n统一响应"]
     Service --> Exception["Exception\n业务异常"]
@@ -78,7 +78,9 @@ graph TD
 | POST | `/api/orders` | 提交订单 | 预留 | `CreateOrderRequest` | `OrderVO` |
 | GET | `/api/orders` | 订单列表 | 预留 | — | `List<OrderSummaryVO>` |
 | GET | `/api/orders/{id}` | 订单详情 | 预留 | — | `OrderVO` |
+| PUT | `/api/orders/{id}` | 更新订单收货信息 | 预留 | `UpdateOrderRequest` | `OrderVO` |
 | PUT | `/api/orders/{id}/cancel` | 取消订单 | 预留 | — | `OrderVO` |
+| DELETE | `/api/orders/{id}` | 删除已取消订单 | 预留 | — | `Void` |
 
 ### 统一响应
 
@@ -115,6 +117,14 @@ graph TD
 | quantity | Integer | `@NotNull @Min(1)` | 购买数量 |
 
 **CreateOrderRequest**
+
+| 字段名 | Java 类型 | 校验规则 | 说明 |
+|--------|-----------|----------|------|
+| receiverName | String | `@NotBlank @Size(max=50)` | 收货人 |
+| receiverPhone | String | `@NotBlank @Size(max=30)` | 联系方式 |
+| receiverAddress | String | `@NotBlank @Size(max=200)` | 收货地址 |
+
+**UpdateOrderRequest**
 
 | 字段名 | Java 类型 | 校验规则 | 说明 |
 |--------|-----------|----------|------|
@@ -203,13 +213,13 @@ graph TD
 
 | 技术 | 版本 | 用途 | 选择理由 |
 |------|------|------|----------|
-| Java | 8 | 后端运行时 | 匹配实验要求 |
-| Spring Boot | 2.2.x | 应用框架 | 匹配实验要求 |
-| Spring Framework | 5.2.x | Web MVC | Spring Boot 2.2 配套版本 |
-| MyBatis | 3.5.x | 数据访问 | 明确 SQL，便于 SQLite/MySQL 兼容 |
-| Hibernate Validation | 6.0.x | 参数校验 | Bean Validation 标准实现 |
+| Java | 17 | 后端运行时 | Spring Boot 3 基线版本 |
+| Spring Boot | 3.2.x | 应用框架 | 满足 Spring Boot 3 要求 |
+| Spring Framework | 6.x | Web MVC | Spring Boot 3 配套版本 |
+| MyBatis Plus | 3.5.x | 数据访问 | 提供 BaseMapper CRUD 能力并保留自定义 SQL |
+| Jakarta Validation | 3.x | 参数校验 | Spring Boot 3 使用 Jakarta 命名空间 |
 | Druid | 1.2.x | 数据源 | 匹配实验要求 |
-| Apache Shiro | 1.7 | 安全框架 | 预留登录校验扩展点 |
+| Apache Shiro | 2.x Jakarta | 安全框架 | 预留登录校验扩展点并兼容 Jakarta Servlet |
 | SQLite JDBC | 3.x | 初始数据库 | 本地零配置运行 |
 | MySQL Connector/J | 8.x | 可选数据库 | 支持 profile 切换 |
 | Vue 3 | 3.x | 前端框架 | 组件化页面 |
@@ -223,9 +233,9 @@ graph TD
 
 | 风险 | 影响程度 | 概率 | 应对策略 |
 |------|----------|------|----------|
-| Spring Boot 2.2 与较新依赖兼容问题 | 中 | 中 | 锁定 Java 8 和兼容版本依赖 |
+| Spring Boot 3 与 Jakarta 依赖兼容问题 | 中 | 中 | 使用 Jakarta Validation、Jakarta Servlet 和 Shiro Jakarta classifier |
 | SQLite 与 MySQL SQL 方言差异 | 中 | 中 | 使用简单通用 SQL，schema 分 profile 管理 |
-| Harness 原始模板偏向 JPA 包名 | 中 | 高 | MyBatis Mapper 放入 repository 层并同步文档说明 |
+| Harness 原始模板偏向 JPA 包名 | 中 | 高 | MyBatis Plus Mapper 放入 repository 层并同步文档说明 |
 | 全量覆盖率 80% 对完整项目成本较高 | 中 | 中 | 优先覆盖核心 Service 和 Controller，后续补充 Repository 测试 |
 
 ### 注意事项

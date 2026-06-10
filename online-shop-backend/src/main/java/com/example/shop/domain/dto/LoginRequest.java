@@ -1,6 +1,6 @@
 package com.example.shop.domain.dto;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**

@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.1  
+**文档版本**：v1.2  
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-09  
 **负责人**：@dev
@@ -68,7 +68,9 @@ Authorization: Bearer eyJ...
 | POST | `/api/orders` | 提交订单 | `{ "receiverName": "张三", "receiverPhone": "13800000000", "receiverAddress": "上海市" }` |
 | GET | `/api/orders` | 查询订单列表 | — |
 | GET | `/api/orders/{id}` | 查询订单详情 | — |
+| PUT | `/api/orders/{id}` | 更新订单收货信息 | `{ "receiverName": "李四", "receiverPhone": "13900000000", "receiverAddress": "北京市" }` |
 | PUT | `/api/orders/{id}/cancel` | 取消订单 | — |
+| DELETE | `/api/orders/{id}` | 删除已取消订单 | — |
 
 **订单状态**：
 
@@ -79,7 +81,7 @@ Authorization: Bearer eyJ...
 
 **订单详情字段**：`id`、`orderNo`、`totalAmount`、`status`、`receiverName`、`receiverPhone`、`receiverAddress`、`createdAt`、`items`
 
-> 订单接口均需要登录令牌，查询结果只返回当前登录用户的数据。
+> 订单接口均需要登录令牌，查询结果只返回当前登录用户的数据。仅 `CREATED` 状态订单允许修改或取消，仅 `CANCELLED` 状态订单允许删除。
 
 ---
 
@@ -99,5 +101,6 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.2 | 2026-06-09 | 订单接口补齐 CRUD：新增更新订单和删除已取消订单接口；后端升级 Spring Boot 3 + MyBatis Plus | @dev |
 | v1.1 | 2026-06-09 | 新增用户登录、Bearer Token 认证和受保护接口说明 | @dev |
 | v1.0 | 2026-06-09 | 新增商品、购物车、订单核心接口 | @dev |

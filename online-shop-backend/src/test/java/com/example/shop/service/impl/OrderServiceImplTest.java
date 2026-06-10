@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.example.shop.common.OrderStatus;
 import com.example.shop.common.UserContext;
 import com.example.shop.domain.dto.CreateOrderRequest;
+import com.example.shop.domain.dto.UpdateOrderRequest;
 import com.example.shop.domain.entity.CartItemDetail;
 import com.example.shop.domain.entity.Order;
 import com.example.shop.domain.entity.OrderItemDetail;
@@ -108,6 +109,44 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void should_updateOrder_when_orderCreated() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+        when(orderMapper.updateReceiver(10L, 1L, "李四", "13900000000", "北京市")).thenReturn(1);
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.updateOrder(10L, updateRequest()).getOrderNo()).isEqualTo("NO1");
+        verify(orderMapper).updateReceiver(10L, 1L, "李四", "13900000000", "北京市");
+    }
+
+    @Test
+    void should_throwException_when_cancelledOrderUpdated() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CANCELLED.name()));
+
+        assertThatThrownBy(() -> orderService.updateOrder(10L, updateRequest()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("当前订单状态不允许修改");
+    }
+
+    @Test
+    void should_deleteOrder_when_orderCancelled() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CANCELLED.name()));
+
+        orderService.deleteOrder(10L);
+
+        verify(orderItemMapper).deleteByOrderId(10L);
+        verify(orderMapper).deleteByIdAndUserId(10L, 1L);
+    }
+
+    @Test
+    void should_throwException_when_createdOrderDeleted() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+
+        assertThatThrownBy(() -> orderService.deleteOrder(10L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("仅允许删除已取消订单");
+    }
+
+    @Test
     void should_returnOrders_when_ordersExist() {
         when(orderMapper.findByUserId(1L)).thenReturn(Collections.singletonList(order(OrderStatus.CREATED.name())));
 
@@ -137,6 +176,14 @@ class OrderServiceImplTest {
         request.setReceiverName("张三");
         request.setReceiverPhone("13800000000");
         request.setReceiverAddress("上海市");
+        return request;
+    }
+
+    private UpdateOrderRequest updateRequest() {
+        UpdateOrderRequest request = new UpdateOrderRequest();
+        request.setReceiverName("李四");
+        request.setReceiverPhone("13900000000");
+        request.setReceiverAddress("北京市");
         return request;
     }
 

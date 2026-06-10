@@ -2,13 +2,15 @@ package com.example.shop.controller;
 
 import com.example.shop.common.ApiResponse;
 import com.example.shop.domain.dto.CreateOrderRequest;
+import com.example.shop.domain.dto.UpdateOrderRequest;
 import com.example.shop.domain.vo.OrderSummaryVO;
 import com.example.shop.domain.vo.OrderVO;
 import com.example.shop.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
-import javax.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,6 +74,19 @@ public class OrderController {
     }
 
     /**
+     * 更新订单收货信息。
+     *
+     * @param id 订单 ID
+     * @param request 更新订单请求
+     * @return 更新后的订单详情响应
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "更新订单", description = "更新当前用户已创建订单的收货信息")
+    public ApiResponse<OrderVO> updateOrder(@PathVariable Long id, @Valid @RequestBody UpdateOrderRequest request) {
+        return ApiResponse.success("更新订单成功", orderService.updateOrder(id, request));
+    }
+
+    /**
      * 取消订单。
      *
      * @param id 订单 ID
@@ -81,5 +96,18 @@ public class OrderController {
     @Operation(summary = "取消订单", description = "取消已创建订单并回补库存")
     public ApiResponse<OrderVO> cancelOrder(@PathVariable Long id) {
         return ApiResponse.success("取消订单成功", orderService.cancelOrder(id));
+    }
+
+    /**
+     * 删除订单。
+     *
+     * @param id 订单 ID
+     * @return 删除结果响应
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除订单", description = "删除当前用户已取消的订单")
+    public ApiResponse<Void> deleteOrder(@PathVariable Long id) {
+        orderService.deleteOrder(id);
+        return ApiResponse.success("删除订单成功", null);
     }
 }

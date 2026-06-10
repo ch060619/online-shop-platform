@@ -2,12 +2,15 @@ package com.example.shop.controller;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.CreateOrderRequest;
+import com.example.shop.domain.dto.UpdateOrderRequest;
 import com.example.shop.domain.vo.OrderSummaryVO;
 import com.example.shop.domain.vo.OrderVO;
 import com.example.shop.service.OrderService;
@@ -62,6 +65,63 @@ class OrderControllerTest {
         mockMvc.perform(get("/api/orders").header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].orderNo").value("NO1"));
+    }
+
+    @Test
+    void should_returnOrder_when_requestDetailApi() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(orderService.getOrder(1L)).thenReturn(order());
+
+        mockMvc.perform(get("/api/orders/1").header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value("NO1"));
+    }
+
+    @Test
+    void should_returnOrder_when_updateOrderValid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(orderService.updateOrder(ArgumentMatchers.eq(1L), ArgumentMatchers.any(UpdateOrderRequest.class)))
+                .thenReturn(order());
+
+        mockMvc.perform(put("/api/orders/1")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"receiverName\":\"李四\",\"receiverPhone\":\"13900000000\","
+                                + "\"receiverAddress\":\"北京市\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value("NO1"));
+    }
+
+    @Test
+    void should_returnOrder_when_cancelOrderValid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(orderService.cancelOrder(1L)).thenReturn(order());
+
+        mockMvc.perform(put("/api/orders/1/cancel").header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value("NO1"));
+    }
+
+    @Test
+    void should_returnSuccess_when_deleteOrderValid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+
+        mockMvc.perform(delete("/api/orders/1").header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("删除订单成功"));
+    }
+
+    @Test
+    void should_return400_when_createOrderInvalid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+
+        mockMvc.perform(post("/api/orders")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"receiverName\":\"\",\"receiverPhone\":\"13800000000\","
+                                + "\"receiverAddress\":\"上海市\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400));
     }
 
     @Test

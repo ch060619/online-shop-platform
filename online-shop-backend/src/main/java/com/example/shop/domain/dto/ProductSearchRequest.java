@@ -1,7 +1,7 @@
 package com.example.shop.domain.dto;
 
 import java.math.BigDecimal;
-import javax.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 
 /**

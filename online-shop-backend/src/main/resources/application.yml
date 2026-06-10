@@ -6,13 +6,15 @@ spring:
     active: sqlite
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
-    initialization-mode: always
-    sql-script-encoding: UTF-8
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
 
-mybatis:
+mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
   type-aliases-package: com.example.shop.domain.entity

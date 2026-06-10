@@ -5,10 +5,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 创建订单请求。
+ * 更新订单请求。
  */
 @Data
-public class CreateOrderRequest {
+public class UpdateOrderRequest {
 
     @NotBlank(message = "收货人不能为空")
     @Size(max = 50, message = "收货人不能超过 50 个字符")

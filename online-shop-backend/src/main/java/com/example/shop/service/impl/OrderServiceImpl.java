@@ -3,6 +3,7 @@ package com.example.shop.service.impl;
 import com.example.shop.common.OrderStatus;
 import com.example.shop.common.UserContext;
 import com.example.shop.domain.dto.CreateOrderRequest;
+import com.example.shop.domain.dto.UpdateOrderRequest;
 import com.example.shop.domain.entity.CartItemDetail;
 import com.example.shop.domain.entity.Order;
 import com.example.shop.domain.entity.OrderItem;
@@ -121,6 +122,31 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * 更新订单收货信息。
+     *
+     * @param orderId 订单 ID
+     * @param request 更新订单请求
+     * @return 更新后的订单详情
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderVO updateOrder(Long orderId, UpdateOrderRequest request) {
+        Order order = requireOrder(orderId);
+        if (!OrderStatus.CREATED.name().equals(order.getStatus())) {
+            throw new BusinessException("当前订单状态不允许修改");
+        }
+        int affected = orderMapper.updateReceiver(orderId,
+                UserContext.getCurrentUserId(),
+                request.getReceiverName(),
+                request.getReceiverPhone(),
+                request.getReceiverAddress());
+        if (affected == 0) {
+            throw new BusinessException(404, "订单不存在");
+        }
+        return getOrder(orderId);
+    }
+
+    /**
      * 取消订单。
      *
      * @param orderId 订单 ID
@@ -139,6 +165,22 @@ public class OrderServiceImpl implements OrderService {
         }
         orderMapper.updateStatus(orderId, UserContext.getCurrentUserId(), OrderStatus.CANCELLED.name());
         return getOrder(orderId);
+    }
+
+    /**
+     * 删除已取消订单。
+     *
+     * @param orderId 订单 ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteOrder(Long orderId) {
+        Order order = requireOrder(orderId);
+        if (!OrderStatus.CANCELLED.name().equals(order.getStatus())) {
+            throw new BusinessException("仅允许删除已取消订单");
+        }
+        orderItemMapper.deleteByOrderId(orderId);
+        orderMapper.deleteByIdAndUserId(orderId, UserContext.getCurrentUserId());
     }
 
     private BigDecimal calculateTotalAmount(List<CartItemDetail> cartItems) {
