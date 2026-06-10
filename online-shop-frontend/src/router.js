@@ -6,6 +6,8 @@ import CheckoutPage from './views/CheckoutPage.vue'
 import OrderList from './views/OrderList.vue'
 import OrderDetail from './views/OrderDetail.vue'
 import LoginPage from './views/LoginPage.vue'
+import OrderSuccess from './views/OrderSuccess.vue'
+import NotFound from './views/NotFound.vue'
 import { isAuthenticated } from './auth'
 
 const router = createRouter({
@@ -17,8 +19,11 @@ const router = createRouter({
     { path: '/products/:id', component: ProductDetail },
     { path: '/cart', component: CartPage, meta: { requiresAuth: true } },
     { path: '/checkout', component: CheckoutPage, meta: { requiresAuth: true } },
+    { path: '/order-success/:id', component: OrderSuccess, meta: { requiresAuth: true } },
     { path: '/orders', component: OrderList, meta: { requiresAuth: true } },
-    { path: '/orders/:id', component: OrderDetail, meta: { requiresAuth: true } }
+    { path: '/orders/:id', component: OrderDetail, meta: { requiresAuth: true } },
+    { path: '/404', component: NotFound },
+    { path: '/:pathMatch(.*)*', redirect: '/404' }
   ]
 })
 

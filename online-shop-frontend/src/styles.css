@@ -140,11 +140,20 @@ a {
 .product-meta,
 .section-title,
 .summary-bar,
-.buy-row {
+.buy-row,
+.button-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.button-row {
+  justify-content: flex-end;
+}
+
+.button-row.center {
+  justify-content: center;
 }
 
 .product-title a {
@@ -266,6 +275,18 @@ a {
   margin: 0;
 }
 
+.result-page {
+  min-height: calc(100vh - 136px);
+  justify-content: center;
+}
+
+.result-panel {
+  padding: 24px;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 @media (max-width: 860px) {
   .app-header {
     align-items: flex-start;
@@ -302,6 +323,7 @@ a {
   .section-title,
   .summary-bar,
   .buy-row,
+  .button-row,
   .pagination-bar {
     align-items: stretch;
     flex-direction: column;

@@ -1,0 +1,21 @@
+<template>
+  <section class="page result-page">
+    <div class="result-panel">
+      <el-result icon="success" title="下单成功" sub-title="订单已创建，可继续查看详情或返回商品列表。">
+        <template #extra>
+          <div class="button-row center">
+            <el-button type="primary" @click="$router.push(`/orders/${orderId}`)">查看订单</el-button>
+            <el-button @click="$router.push('/products')">继续购物</el-button>
+          </div>
+        </template>
+      </el-result>
+    </div>
+  </section>
+</template>
+
+<script setup>
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const orderId = route.params.id
+</script>

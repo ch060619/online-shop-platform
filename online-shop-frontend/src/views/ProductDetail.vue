@@ -21,13 +21,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { cartApi, productApi } from '../api'
+import { productApi } from '../api'
 import { isAuthenticated } from '../auth'
+import { useCartStore } from '../stores/cart'
 import PromotionCountdown from '../components/PromotionCountdown.vue'
 import PromotionTags from '../components/PromotionTags.vue'
 
 const route = useRoute()
 const router = useRouter()
+const cartStore = useCartStore()
 const product = ref(null)
 const quantity = ref(1)
 
@@ -52,7 +54,7 @@ const addToCart = async () => {
     router.push({ path: '/login', query: { redirect: route.fullPath } })
     return
   }
-  await cartApi.add({ productId: product.value.id, quantity: quantity.value })
+  await cartStore.addItem(product.value.id, quantity.value)
   ElMessage.success('已加入购物车')
   router.push('/cart')
 }
