@@ -31,6 +31,7 @@
 | 2026-06-10 19:21 | `mvn test` | 通过 | — | — | 后端 49 个测试通过，商品分页 service/controller 测试通过 |
 | 2026-06-10 19:29 | `mvn clean verify -Pharness-new` | 通过 | 89.30% | 5.22% | 后端 50 个测试通过，商品分页 Mapper slice 测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-10 19:28 | `npm run build` | 通过 | — | — | 前端异步请求封装与商品分页筛选构建通过，存在 chunk 体积提示 |
+| 2026-06-10 20:00 | `npm run build` | 通过 | — | — | 商品详情促销标签和倒计时子组件构建通过，存在 chunk 体积提示 |
 
 ### 覆盖率趋势
 

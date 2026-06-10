@@ -5,6 +5,8 @@
       <el-tag>{{ product.category }}</el-tag>
       <h1>{{ product.name }}</h1>
       <p>{{ product.description }}</p>
+      <PromotionTags :promotion="promotionInfo" />
+      <PromotionCountdown :promotion="promotionInfo" />
       <div class="price-line">￥{{ product.price }}</div>
       <div class="stock-line">库存 {{ product.stock }}</div>
       <div class="buy-row">
@@ -16,16 +18,30 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { cartApi, productApi } from '../api'
 import { isAuthenticated } from '../auth'
+import PromotionCountdown from '../components/PromotionCountdown.vue'
+import PromotionTags from '../components/PromotionTags.vue'
 
 const route = useRoute()
 const router = useRouter()
 const product = ref(null)
 const quantity = ref(1)
+
+const promotionInfo = computed(() => {
+  if (!product.value) {
+    return { labels: [] }
+  }
+
+  return {
+    title: '限时优惠',
+    labels: ['限时直降', product.value.stock <= 20 ? '库存紧张' : '热门促销'],
+    endsAt: new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString()
+  }
+})
 
 const loadProduct = async () => {
   product.value = await productApi.detail(route.params.id)
