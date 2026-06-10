@@ -35,11 +35,15 @@ class CommonSupportTest {
     void should_createApiResponse_when_factoryCalled() {
         ApiResponse<String> success = ApiResponse.success("ok");
         ApiResponse<String> namedSuccess = ApiResponse.success("done", "ok");
+        ApiResponse<String> pagedSuccess = ApiResponse.successWithPage("ok", new PageMeta(1, 6, 10, 2));
         ApiResponse<Void> error = ApiResponse.error(400, "bad");
+        ApiResponse<String> errorWithData = ApiResponse.error(400, "bad", "field");
 
         assertThat(success.getData()).isEqualTo("ok");
         assertThat(namedSuccess.getMessage()).isEqualTo("done");
+        assertThat(pagedSuccess.getPage().getTotalPages()).isEqualTo(2);
         assertThat(error.getCode()).isEqualTo(400);
+        assertThat(errorWithData.getData()).isEqualTo("field");
     }
 
     @Test

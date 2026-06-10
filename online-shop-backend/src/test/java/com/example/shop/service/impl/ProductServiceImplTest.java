@@ -2,10 +2,13 @@ package com.example.shop.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.shop.domain.dto.ProductSearchRequest;
+import com.example.shop.domain.dto.ProductSaveRequest;
 import com.example.shop.domain.entity.Product;
 import com.example.shop.exception.BusinessException;
 import com.example.shop.repository.mapper.ProductMapper;
@@ -81,6 +84,53 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void should_returnCreatedProduct_when_addProductValid() {
+        Product saved = product();
+        saved.setId(2L);
+        doAnswer(invocation -> {
+            Product argument = invocation.getArgument(0);
+            argument.setId(2L);
+            return 1;
+        }).when(productMapper).insert(any(Product.class));
+        when(productMapper.findById(2L)).thenReturn(saved);
+
+        var result = productService.add(saveRequest());
+
+        assertThat(result.getId()).isEqualTo(2L);
+        verify(productMapper).insert(any(Product.class));
+    }
+
+    @Test
+    void should_returnUpdatedProduct_when_updateProductValid() {
+        Product saved = product();
+        saved.setName("无线鼠标");
+        when(productMapper.findById(1L)).thenReturn(product(), saved);
+
+        var result = productService.update(1L, saveRequest());
+
+        assertThat(result.getName()).isEqualTo("无线鼠标");
+        verify(productMapper).update(product());
+    }
+
+    @Test
+    void should_deleteProduct_when_productExists() {
+        when(productMapper.findById(1L)).thenReturn(product());
+
+        productService.delete(1L);
+
+        verify(productMapper).deleteById(1L);
+    }
+
+    @Test
+    void should_throwException_when_updateProductNotFound() {
+        when(productMapper.findById(99L)).thenReturn(null);
+
+        assertThatThrownBy(() -> productService.update(99L, saveRequest()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("商品不存在");
+    }
+
+    @Test
     void should_throwException_when_productNotFound() {
         when(productMapper.findById(99L)).thenReturn(null);
 
@@ -99,5 +149,16 @@ class ProductServiceImplTest {
         product.setImageUrl("image");
         product.setDescription("desc");
         return product;
+    }
+
+    private ProductSaveRequest saveRequest() {
+        ProductSaveRequest request = new ProductSaveRequest();
+        request.setName("机械键盘");
+        request.setCategory("数码配件");
+        request.setPrice(new BigDecimal("299.00"));
+        request.setStock(10);
+        request.setImageUrl("image");
+        request.setDescription("desc");
+        return request;
     }
 }

@@ -4,12 +4,14 @@
 
 ## 主要功能
 
-- 商品列表：支持按商品名称、分类、价格区间分页查询商品，每次切换页码或筛选条件都会发起接口请求。
+- 商品列表：支持按商品名称、分类、价格区间分页查询商品，每次切换页码或筛选条件都会发起接口请求，统一响应包含分页元信息。
+- 商品维护：后端提供商品新增、删除、更新和查询基础接口，覆盖正常参数、异常参数和商品不存在场景。
 - 商品详情：查看商品价格、库存、描述等信息，并展示父组件传入子组件的促销标签和限时倒计时。
 - 用户登录：演示账号登录后获取 Bearer Token，购物车和订单接口基于 token 识别当前用户。
 - 购物车：通过 Pinia 维护全局购物车状态，支持加入商品、修改数量、删除商品、清空购物车和实时计算总价。
 - 订单管理：从购物车提交订单，下单成功后跳转成功页，可继续查看订单列表和订单详情，取消订单并回补库存。
 - 路由兜底：前端提供 404 页面，未知地址会跳转到友好的页面不存在提示。
+- 全局异常：后端统一处理参数错误、业务异常、接口不存在和未预期异常，所有接口保持统一 JSON 结构。
 - 前后端联调：Vite 代理 `/api` 到后端服务，开发时无需单独处理跨域。
 - 一键启动：根目录 `start.bat` 会启动前后端服务，并自动打开前端首页和后端商品接口。
 
@@ -88,6 +90,10 @@
 | 认证 | `POST` | `/api/auth/login` | 用户登录，返回 Bearer Token |
 | 商品 | `GET` | `/api/products` | 分页查询商品列表，支持名称、分类、价格区间筛选 |
 | 商品 | `GET` | `/api/products/{id}` | 查询商品详情 |
+| 商品 | `POST` | `/api/products/add` | 新增商品 |
+| 商品 | `DELETE` | `/api/products/delete/{id}` | 删除商品 |
+| 商品 | `PUT` | `/api/products/update/{id}` | 更新商品 |
+| 商品 | `GET` | `/api/products/query` | 商品分页查询兼容入口 |
 | 购物车 | `GET` | `/api/cart` | 查询当前用户购物车 |
 | 购物车 | `POST` | `/api/cart/items` | 加入购物车 |
 | 购物车 | `PUT` | `/api/cart/items/{id}` | 修改购物车商品数量 |
@@ -121,7 +127,33 @@ Authorization: Bearer <token>
 | `page` | 页码，默认 `1` |
 | `pageSize` | 每页数量，默认 `6`，最大 `50` |
 
-商品分页响应位于统一响应的 `data` 字段下，包含 `items`、`total`、`page`、`pageSize` 和 `totalPages`。
+统一响应结构：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {},
+  "page": null
+}
+```
+
+商品分页响应会在 `data` 字段下保留 `items`、`total`、`page`、`pageSize` 和 `totalPages`，同时在顶层 `page` 字段返回分页元信息。
+
+商品新增/更新请求体示例：
+
+```json
+{
+  "name": "机械键盘",
+  "category": "数码配件",
+  "price": 299.00,
+  "stock": 10,
+  "imageUrl": "image",
+  "description": "desc"
+}
+```
+
+接口异常统一返回 `code` 和 `message`：参数错误为 `400`，业务不存在为 `404`，未登录为 `401`，未预期错误为 `500`。Postman/ApiFox 覆盖测试清单见 `harness-collab/04-api-docs/online-shop-api.md`，可导入集合位于 `harness-collab/03-exec-plans/product-crud-postman-collection.json`。
 
 ## 页面路由
 
@@ -207,6 +239,8 @@ mvn test
 cd online-shop-backend
 mvn clean verify -Pharness-new
 ```
+
+最近一次后端门禁结果：`2026-06-10 20:48` 执行通过，62 个测试全部通过，行覆盖率 `89.73%`，Checkstyle 0 违规，SpotBugs 0 Bug。
 
 前端构建：
 

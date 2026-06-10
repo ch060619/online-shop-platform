@@ -1,6 +1,7 @@
 package com.example.shop.service.impl;
 
 import com.example.shop.domain.dto.ProductSearchRequest;
+import com.example.shop.domain.dto.ProductSaveRequest;
 import com.example.shop.domain.entity.Product;
 import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
@@ -74,6 +75,63 @@ public class ProductServiceImpl implements ProductService {
             throw new BusinessException(404, "商品不存在");
         }
         return toProductVO(product);
+    }
+
+    /**
+     * 新增商品。
+     *
+     * @param request 商品保存请求
+     * @return 新增后的商品详情
+     */
+    @Override
+    public ProductVO add(ProductSaveRequest request) {
+        Product product = toProduct(request);
+        productMapper.insert(product);
+        return toProductVO(productMapper.findById(product.getId()));
+    }
+
+    /**
+     * 更新商品。
+     *
+     * @param id 商品 ID
+     * @param request 商品保存请求
+     * @return 更新后的商品详情
+     */
+    @Override
+    public ProductVO update(Long id, ProductSaveRequest request) {
+        ensureProductExists(id);
+        Product product = toProduct(request);
+        product.setId(id);
+        productMapper.update(product);
+        return toProductVO(productMapper.findById(id));
+    }
+
+    /**
+     * 删除商品。
+     *
+     * @param id 商品 ID
+     */
+    @Override
+    public void delete(Long id) {
+        ensureProductExists(id);
+        productMapper.deleteById(id);
+    }
+
+    private void ensureProductExists(Long id) {
+        if (productMapper.findById(id) == null) {
+            throw new BusinessException(404, "商品不存在");
+        }
+    }
+
+    private Product toProduct(ProductSaveRequest request) {
+        Product product = new Product();
+        product.setName(request.getName());
+        product.setCategory(request.getCategory());
+        product.setPrice(request.getPrice());
+        product.setStock(request.getStock());
+        product.setImageUrl(request.getImageUrl());
+        product.setDescription(request.getDescription());
+        return product;
     }
 
     private ProductVO toProductVO(Product product) {

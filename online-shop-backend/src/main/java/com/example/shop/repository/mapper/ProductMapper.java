@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -104,4 +105,23 @@ public interface ProductMapper {
             + "VALUES (#{name}, #{category}, #{price}, #{stock}, #{imageUrl}, #{description})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Product product);
+
+    /**
+     * 更新商品。
+     *
+     * @param product 商品实体
+     * @return 影响行数
+     */
+    @Update("UPDATE product SET name = #{name}, category = #{category}, price = #{price}, stock = #{stock}, "
+            + "image_url = #{imageUrl}, description = #{description} WHERE id = #{id}")
+    int update(Product product);
+
+    /**
+     * 根据 ID 删除商品。
+     *
+     * @param id 商品 ID
+     * @return 影响行数
+     */
+    @Delete("DELETE FROM product WHERE id = #{id}")
+    int deleteById(@Param("id") Long id);
 }

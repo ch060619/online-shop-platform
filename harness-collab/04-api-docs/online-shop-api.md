@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.3  
+**文档版本**：v1.4
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-10  
 **负责人**：@dev
@@ -13,7 +13,8 @@
 - **基础路径**：`/api`
 - **认证方式**：商品接口公开访问；登录后端返回 Bearer Token，购物车和订单接口必须携带 `Authorization: Bearer <token>`
 - **内容类型**：`application/json`
-- **统一响应**：`{ "code": 200, "message": "success", "data": ... }`
+- **统一响应**：`{ "code": 200, "message": "success", "data": ..., "page": null }`
+- **分页响应**：分页接口会额外返回 `page` 元信息；为兼容既有前端，`data` 中仍保留分页对象。
 
 ---
 
@@ -23,8 +24,25 @@
 |------|------|------|----------|
 | GET | `/api/products` | 商品分页列表和搜索 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 | GET | `/api/products/{id}` | 商品详情 | path: `id` |
+| POST | `/api/products/add` | 新增商品 | JSON 请求体 |
+| DELETE | `/api/products/delete/{id}` | 删除商品 | path: `id` |
+| PUT | `/api/products/update/{id}` | 更新商品 | path: `id` + JSON 请求体 |
+| GET | `/api/products/query` | 商品分页查询兼容入口 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 
 **商品响应字段**：`id`、`name`、`category`、`price`、`stock`、`imageUrl`、`description`
+
+**商品新增/更新请求体**：
+
+```json
+{
+  "name": "机械键盘",
+  "category": "数码配件",
+  "price": 299.00,
+  "stock": 10,
+  "imageUrl": "image",
+  "description": "desc"
+}
+```
 
 **商品分页响应字段**：
 
@@ -111,12 +129,28 @@ Authorization: Bearer eyJ...
 | 404 | 商品、购物车明细或订单不存在 |
 | 500 | 服务器内部错误 |
 
+## Postman / ApiFox 覆盖测试清单
+
+| 场景 | 请求 | 预期 |
+|------|------|------|
+| 商品新增成功 | `POST /api/products/add`，合法 JSON | `code=200`，`message=新增商品成功` |
+| 商品新增参数错误 | `POST /api/products/add`，空名称、价格为 0、库存为 -1 | `code=400`，`data` 返回字段错误 |
+| 商品删除成功 | `DELETE /api/products/delete/{id}` | `code=200`，`message=删除商品成功` |
+| 商品删除不存在 | `DELETE /api/products/delete/99999` | `code=404`，`message=商品不存在` |
+| 商品更新成功 | `PUT /api/products/update/{id}`，合法 JSON | `code=200`，返回更新后商品 |
+| 商品更新不存在 | `PUT /api/products/update/99999` | `code=404`，`message=商品不存在` |
+| 商品分页查询 | `GET /api/products/query?page=1&pageSize=6` | `code=200`，返回 `data.items` 和 `page` |
+| 查询参数错误 | `GET /api/products/query?page=0` 或 `GET /api/products/not-number` | `code=400` |
+| 业务异常 | `GET /api/products/query?minPrice=100&maxPrice=50` | `code=400`，提示最低价格不能大于最高价格 |
+| 接口不存在 | `GET /api/not-exists` | `code=404`，`message=接口不存在` |
+
 ---
 
 ## 变更记录
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.4 | 2026-06-10 | 新增商品 add/delete/update/query 接口、统一响应分页元信息和 Postman/ApiFox 覆盖测试清单 | @dev |
 | v1.3 | 2026-06-10 | 商品列表接口新增 `page`、`pageSize` 分页参数，并返回 `items`、`total`、`page`、`pageSize`、`totalPages` 分页结构 | @dev |
 | v1.2 | 2026-06-09 | 订单接口补齐 CRUD：新增更新订单和删除已取消订单接口；后端升级 Spring Boot 3 + MyBatis Plus | @dev |
 | v1.1 | 2026-06-09 | 新增用户登录、Bearer Token 认证和受保护接口说明 | @dev |

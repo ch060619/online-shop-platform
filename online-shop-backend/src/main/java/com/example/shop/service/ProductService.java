@@ -1,6 +1,7 @@
 package com.example.shop.service;
 
 import com.example.shop.domain.dto.ProductSearchRequest;
+import com.example.shop.domain.dto.ProductSaveRequest;
 import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
 
@@ -24,4 +25,28 @@ public interface ProductService {
      * @return 商品详情
      */
     ProductVO getById(Long id);
+
+    /**
+     * 新增商品。
+     *
+     * @param request 商品保存请求
+     * @return 新增后的商品详情
+     */
+    ProductVO add(ProductSaveRequest request);
+
+    /**
+     * 更新商品。
+     *
+     * @param id 商品 ID
+     * @param request 商品保存请求
+     * @return 更新后的商品详情
+     */
+    ProductVO update(Long id, ProductSaveRequest request);
+
+    /**
+     * 删除商品。
+     *
+     * @param id 商品 ID
+     */
+    void delete(Long id);
 }

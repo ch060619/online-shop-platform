@@ -108,6 +108,6 @@ public class OrderController {
     @Operation(summary = "删除订单", description = "删除当前用户已取消的订单")
     public ApiResponse<Void> deleteOrder(@PathVariable Long id) {
         orderService.deleteOrder(id);
-        return ApiResponse.success("删除订单成功", null);
+        return ApiResponse.success("删除订单成功", (Void) null);
     }
 }

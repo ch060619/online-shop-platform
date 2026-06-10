@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "Online Shop Product CRUD Full Coverage",
+    "description": "商品新增、删除、更新、查询、参数错误、业务异常和接口不存在覆盖测试，可导入 Postman 或 ApiFox。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "productId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "商品分页查询成功",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products/query?page=1&pageSize=6"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('code is 200', () => pm.expect(pm.response.json().code).to.eql(200));",
+              "pm.test('page exists', () => pm.expect(pm.response.json().page.total).to.be.a('number'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "商品新增成功",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"接口测试商品\",\"category\":\"测试分类\",\"price\":19.90,\"stock\":8,\"imageUrl\":\"image\",\"description\":\"desc\"}"
+        },
+        "url": "{{baseUrl}}/api/products/add"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('created', () => pm.expect(json.message).to.eql('新增商品成功'));",
+              "pm.test('capture product id', () => pm.collectionVariables.set('productId', json.data.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "商品更新成功",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"接口测试商品-更新\",\"category\":\"测试分类\",\"price\":29.90,\"stock\":6,\"imageUrl\":\"image\",\"description\":\"updated\"}"
+        },
+        "url": "{{baseUrl}}/api/products/update/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('updated', () => pm.expect(json.message).to.eql('更新商品成功'));",
+              "pm.test('name updated', () => pm.expect(json.data.name).to.eql('接口测试商品-更新'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "商品删除成功",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/products/delete/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('deleted', () => pm.expect(pm.response.json().message).to.eql('删除商品成功'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "商品新增参数错误",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"\",\"category\":\"测试分类\",\"price\":0,\"stock\":-1}"
+        },
+        "url": "{{baseUrl}}/api/products/add"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('validation error', () => pm.expect(json.code).to.eql(400));",
+              "pm.test('field errors exist', () => pm.expect(json.data.name).to.eql('商品名称不能为空'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "商品不存在业务异常",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products/99999"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('not found code', () => pm.expect(json.code).to.eql(404));",
+              "pm.test('not found message', () => pm.expect(json.message).to.eql('商品不存在'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "查询参数错误",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products/query?page=0"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('query validation error', () => pm.expect(pm.response.json().code).to.eql(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "价格区间业务异常",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/products/query?minPrice=100&maxPrice=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('business error', () => pm.expect(json.code).to.eql(400));",
+              "pm.test('business message', () => pm.expect(json.message).to.include('最低价格不能大于最高价格'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "接口不存在",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/not-exists"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('api not found', () => pm.expect(json.code).to.eql(404));",
+              "pm.test('api not found message', () => pm.expect(json.message).to.eql('接口不存在'));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

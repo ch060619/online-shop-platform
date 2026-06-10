@@ -71,6 +71,10 @@ graph TD
 |------|------|------|------|--------|--------|
 | GET | `/api/products` | 商品分页列表和搜索 | 预留 | — | `PageVO<ProductVO>` |
 | GET | `/api/products/{id}` | 商品详情 | 预留 | — | `ProductVO` |
+| POST | `/api/products/add` | 新增商品 | 预留 | `ProductSaveRequest` | `ProductVO` |
+| DELETE | `/api/products/delete/{id}` | 删除商品 | 预留 | — | `Void` |
+| PUT | `/api/products/update/{id}` | 更新商品 | 预留 | `ProductSaveRequest` | `ProductVO` |
+| GET | `/api/products/query` | 商品分页查询兼容入口 | 预留 | — | `PageVO<ProductVO>` |
 | GET | `/api/cart` | 查询购物车 | 预留 | — | `CartVO` |
 | POST | `/api/cart/items` | 加入购物车 | 预留 | `AddCartItemRequest` | `CartVO` |
 | PUT | `/api/cart/items/{id}` | 修改购物车数量 | 预留 | `UpdateCartItemRequest` | `CartVO` |
@@ -88,9 +92,17 @@ graph TD
 {
   "code": 200,
   "message": "success",
-  "data": {}
+  "data": {},
+  "page": {
+    "page": 1,
+    "pageSize": 6,
+    "total": 20,
+    "totalPages": 4
+  }
 }
 ```
+
+普通响应的 `page` 字段为 `null`；分页响应同时保留 `data` 中的分页对象，便于兼容既有前端。
 
 ### 商品搜索参数
 
@@ -114,6 +126,17 @@ graph TD
 | totalPages | int | 总页数 |
 
 ### 请求 DTO
+
+**ProductSaveRequest**
+
+| 字段名 | Java 类型 | 校验规则 | 说明 |
+|--------|-----------|----------|------|
+| name | String | `@NotBlank @Size(max=100)` | 商品名称 |
+| category | String | `@NotBlank @Size(max=50)` | 商品分类 |
+| price | BigDecimal | `@NotNull @DecimalMin("0.01")` | 商品价格 |
+| stock | Integer | `@NotNull @Min(0)` | 商品库存 |
+| imageUrl | String | `@Size(max=255)` | 商品图片 |
+| description | String | `@Size(max=1000)` | 商品描述 |
 
 **AddCartItemRequest**
 
@@ -277,5 +300,6 @@ graph TD
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.2 | 2026-06-10 | 补充商品新增、删除、更新、查询兼容接口和统一响应分页元信息 | @dev |
 | v1.1 | 2026-06-10 | 补充商品分页查询接口、分页响应结构和 Mapper slice 测试策略 | @dev |
 | v1.0 | 2026-06-09 | 根据需求文档创建初始技术设计 | @dev |
