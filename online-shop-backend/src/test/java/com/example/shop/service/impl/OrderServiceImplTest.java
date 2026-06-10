@@ -19,11 +19,13 @@ import com.example.shop.repository.mapper.OrderItemMapper;
 import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.ProductMapper;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -61,9 +63,11 @@ class OrderServiceImplTest {
 
     @Test
     void should_createOrder_when_cartStockEnough() {
+        LocalDateTime beforeCreate = LocalDateTime.now();
+        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
         when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
-        when(orderMapper.insert(any(Order.class))).thenAnswer(invocation -> {
+        when(orderMapper.insert(orderCaptor.capture())).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             order.setId(10L);
             return 1;
@@ -72,6 +76,7 @@ class OrderServiceImplTest {
         when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
 
         assertThat(orderService.createOrder(createRequest()).getTotalAmount()).isEqualByComparingTo("20.00");
+        assertThat(orderCaptor.getValue().getCreatedAt()).isBetween(beforeCreate, LocalDateTime.now());
         verify(cartItemMapper).deleteByUserId(1L);
     }
 

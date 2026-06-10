@@ -18,6 +18,7 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
   type-aliases-package: com.example.shop.domain.entity
+  type-handlers-package: com.example.shop.repository.typehandler
 
 shop:
   auth:

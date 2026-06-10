@@ -1,11 +1,15 @@
 package com.example.shop.repository.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.shop.domain.entity.Order;
+import com.example.shop.repository.typehandler.SqliteLocalDateTimeTypeHandler;
 import java.util.List;
 import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -13,7 +17,7 @@ import org.apache.ibatis.annotations.Update;
  * 订单主表 MyBatis Mapper。
  */
 @Mapper
-public interface OrderMapper extends BaseMapper<Order> {
+public interface OrderMapper {
 
     /**
      * 查询用户订单列表。
@@ -23,6 +27,18 @@ public interface OrderMapper extends BaseMapper<Order> {
      */
     @Select("SELECT id, order_no, user_id, total_amount, status, receiver_name, receiver_phone, "
             + "receiver_address, created_at FROM orders WHERE user_id = #{userId} ORDER BY id DESC")
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "order_no", property = "orderNo"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "total_amount", property = "totalAmount"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "receiver_name", property = "receiverName"),
+            @Result(column = "receiver_phone", property = "receiverPhone"),
+            @Result(column = "receiver_address", property = "receiverAddress"),
+            @Result(column = "created_at", property = "createdAt",
+                    typeHandler = SqliteLocalDateTimeTypeHandler.class)
+    })
     List<Order> findByUserId(@Param("userId") Long userId);
 
     /**
@@ -34,7 +50,32 @@ public interface OrderMapper extends BaseMapper<Order> {
      */
     @Select("SELECT id, order_no, user_id, total_amount, status, receiver_name, receiver_phone, "
             + "receiver_address, created_at FROM orders WHERE id = #{id} AND user_id = #{userId}")
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "order_no", property = "orderNo"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "total_amount", property = "totalAmount"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "receiver_name", property = "receiverName"),
+            @Result(column = "receiver_phone", property = "receiverPhone"),
+            @Result(column = "receiver_address", property = "receiverAddress"),
+            @Result(column = "created_at", property = "createdAt",
+                    typeHandler = SqliteLocalDateTimeTypeHandler.class)
+    })
     Order findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
+    /**
+     * 新增订单。
+     *
+     * @param order 订单实体
+     * @return 影响行数
+     */
+    @Insert("INSERT INTO orders (order_no, user_id, total_amount, status, receiver_name, receiver_phone, "
+            + "receiver_address, created_at) VALUES (#{orderNo}, #{userId}, #{totalAmount}, #{status}, "
+            + "#{receiverName}, #{receiverPhone}, #{receiverAddress}, "
+            + "#{createdAt,typeHandler=com.example.shop.repository.typehandler.SqliteLocalDateTimeTypeHandler})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insert(Order order);
 
     /**
      * 修改订单状态。
@@ -74,4 +115,5 @@ public interface OrderMapper extends BaseMapper<Order> {
      */
     @Delete("DELETE FROM orders WHERE id = #{id} AND user_id = #{userId}")
     int deleteByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
 }

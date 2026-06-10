@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.4
+**文档版本**：v1.6
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-10  
 **负责人**：@dev
@@ -115,6 +115,8 @@ Authorization: Bearer eyJ...
 
 **订单详情字段**：`id`、`orderNo`、`totalAmount`、`status`、`receiverName`、`receiverPhone`、`receiverAddress`、`createdAt`、`items`
 
+`createdAt` 由后端应用在创建订单时使用系统时间写入，持久化为 `yyyy-MM-dd HH:mm:ss` 格式；读取时兼容历史 ISO `yyyy-MM-ddTHH:mm:ss` 格式，避免 SQLite 时间戳解析失败。
+
 > 订单接口均需要登录令牌，查询结果只返回当前登录用户的数据。仅 `CREATED` 状态订单允许修改或取消，仅 `CANCELLED` 状态订单允许删除。
 
 ---
@@ -150,6 +152,8 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.6 | 2026-06-10 | 明确订单 `createdAt` 的 SQLite 兼容持久化格式和历史 ISO 格式读回兼容策略 | @dev |
+| v1.5 | 2026-06-10 | 明确订单 `createdAt` 由后端应用系统时间写入，修复数据库默认时间导致的时区偏差 | @dev |
 | v1.4 | 2026-06-10 | 新增商品 add/delete/update/query 接口、统一响应分页元信息和 Postman/ApiFox 覆盖测试清单 | @dev |
 | v1.3 | 2026-06-10 | 商品列表接口新增 `page`、`pageSize` 分页参数，并返回 `items`、`total`、`page`、`pageSize`、`totalPages` 分页结构 | @dev |
 | v1.2 | 2026-06-09 | 订单接口补齐 CRUD：新增更新订单和删除已取消订单接口；后端升级 Spring Boot 3 + MyBatis Plus | @dev |

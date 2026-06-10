@@ -72,14 +72,16 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException("购物车为空，不能提交订单");
         }
         BigDecimal totalAmount = calculateTotalAmount(cartItems);
+        LocalDateTime now = LocalDateTime.now();
         Order order = new Order();
-        order.setOrderNo(generateOrderNo());
+        order.setOrderNo(generateOrderNo(now));
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
         order.setStatus(OrderStatus.CREATED.name());
         order.setReceiverName(request.getReceiverName());
         order.setReceiverPhone(request.getReceiverPhone());
         order.setReceiverAddress(request.getReceiverAddress());
+        order.setCreatedAt(now);
         orderMapper.insert(order);
 
         for (CartItemDetail cartItem : cartItems) {
@@ -191,8 +193,8 @@ public class OrderServiceImpl implements OrderService {
         return totalAmount;
     }
 
-    private String generateOrderNo() {
-        String timePart = LocalDateTime.now().format(ORDER_NO_TIME_FORMAT);
+    private String generateOrderNo(LocalDateTime now) {
+        String timePart = now.format(ORDER_NO_TIME_FORMAT);
         String randomPart = UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
         return timePart + randomPart;
     }

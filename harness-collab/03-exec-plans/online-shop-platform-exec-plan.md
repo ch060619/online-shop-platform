@@ -35,6 +35,13 @@
 | 2026-06-10 22:00 | `npm run build` | 通过 | — | — | Pinia 购物车状态、清空购物车、下单成功页和 404 路由构建通过，存在 chunk 体积提示 |
 | 2026-06-10 20:48 | `mvn clean verify -Pharness-new` | 通过 | 89.73% | 6.60% | 后端 62 个测试通过；商品 add/delete/update/query、统一分页响应和全局异常处理验证通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-10 20:49 | `product-crud-postman-collection.json` | 已编写 | — | — | Postman/ApiFox 可导入集合覆盖商品 CRUD、参数错误、业务异常和接口不存在场景 |
+| 2026-06-10 21:19 | `mvn test -Dtest=OrderServiceImplTest` | 通过 | — | — | 订单服务 11 个测试通过，新增创建订单时写入系统时间断言 |
+| 2026-06-10 21:20 | `mvn clean verify -Pharness-new` | 通过 | — | — | 后端 62 个测试通过，Checkstyle 0，SpotBugs 0；本次命令输出中 JaCoCo 执行数据被跳过，随后单独补跑覆盖率校验 |
+| 2026-06-10 21:21 | `mvn test jacoco:report` + `jacoco:check@jacoco-check` | 通过 | 89.77% | 6.60% | 显式 JaCoCo agent 生成覆盖率报告，profile 覆盖率阈值检查通过 |
+| 2026-06-10 21:36 | `mvn test -Dtest=OrderMapperTest` | 通过 | — | — | 订单 Mapper 2 个测试通过，覆盖 SQLite `created_at` 写入格式和历史 ISO 分隔符读回 |
+| 2026-06-10 21:37 | `mvn test -Dtest=OrderServiceImplTest,OrderMapperTest` | 通过 | — | — | 订单服务和 Mapper 共 13 个测试通过 |
+| 2026-06-10 21:38 | `mvn clean verify -Pharness-new` | 通过 | — | — | 后端 64 个测试通过，Checkstyle 0，SpotBugs 0；本次命令输出中 JaCoCo 执行数据被跳过，随后单独补跑覆盖率校验 |
+| 2026-06-10 21:39 | `mvn test jacoco:report` + `jacoco:check@jacoco-check` | 通过 | 89.71% | 6.74% | 显式 JaCoCo agent 生成覆盖率报告，profile 覆盖率阈值检查通过 |
 
 ### 覆盖率趋势
 
@@ -44,6 +51,8 @@
 | 2026-06-09 | 88.71% | 5.13% | 67.61% | 100% |
 | 2026-06-10 | 89.30% | 5.22% | 68.66% | 100% |
 | 2026-06-10 | 89.73% | 6.60% | 69.15% | 100% |
+| 2026-06-10 | 89.77% | 6.60% | 69.36% | 100% |
+| 2026-06-10 | 89.71% | 6.74% | 69.59% | 100% |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 
@@ -56,6 +65,8 @@
 | 1 | 尚未执行测试验证 | P2 | 2026-06-09 | 已解决 | 已执行后端与前端验证并回填结果 | 2026-06-09 |
 | 2 | Spring Boot 3 启动时 Shiro Boot 自动配置加载旧 `javax.servlet.Filter` 类型，导致 `start.bat` 后端启动失败 | P1 | 2026-06-09 | 已解决 | 移除 Shiro Boot starter，保留 `shiro-spring:jakarta` 与 `shiro-web:jakarta`，由项目现有拦截器负责 API 登录态校验 | 2026-06-09 |
 | 3 | 商品维护接口、统一分页响应和异常场景缺少覆盖测试记录 | P2 | 2026-06-10 | 已解决 | 新增 controller/service/mapper 自动化测试，并在 API 文档补充 Postman/ApiFox 全覆盖场景清单 | 2026-06-10 |
+| 4 | SQLite 默认 `CURRENT_TIMESTAMP` 与应用系统时区不一致，订单创建时间显示偏离系统时间 | P1 | 2026-06-10 | 已解决 | 创建订单时由 `OrderServiceImpl` 显式写入 `LocalDateTime.now()`，并补充单元测试断言 | 2026-06-10 |
+| 5 | SQLite 读取订单 `created_at` 时无法解析 ISO `T` 分隔时间，导致订单确认页报 timestamp parsing 错误 | P1 | 2026-06-10 | 已解决 | 新增 SQLite 兼容的 `LocalDateTime` TypeHandler，订单 Mapper 显式写入空格分隔时间并兼容读回历史 ISO 格式 | 2026-06-10 |
 
 ---
 
@@ -68,6 +79,8 @@
 | 2026-06-09 19:19 | harness-new | 0 | 通过 | — |
 | 2026-06-09 22:52 | harness-new | 0 | 通过 | — |
 | 2026-06-10 20:48 | harness-new | 0 | 通过 | — |
+| 2026-06-10 21:20 | harness-new | 0 | 通过 | — |
+| 2026-06-10 21:38 | harness-new | 0 | 通过 | — |
 
 ### SpotBugs 检查
 
@@ -76,6 +89,8 @@
 | 2026-06-09 19:19 | harness-new | 0 | 0 | 通过 |
 | 2026-06-09 22:52 | harness-new | 0 | 0 | 通过 |
 | 2026-06-10 20:48 | harness-new | 0 | 0 | 通过 |
+| 2026-06-10 21:20 | harness-new | 0 | 0 | 通过 |
+| 2026-06-10 21:38 | harness-new | 0 | 0 | 通过 |
 
 ---
 
