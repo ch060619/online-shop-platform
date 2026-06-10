@@ -3,7 +3,7 @@
 **关联需求**：[电商购物平台需求](../01-product-specs/online-shop-platform-spec.md)  
 **文档状态**：已确认  
 **创建时间**：2026-06-09  
-**最后更新**：2026-06-09  
+**最后更新**：2026-06-10  
 **负责人**：@dev
 
 ---
@@ -38,10 +38,10 @@ graph TD
 ### 数据流向
 
 **商品查询流程**：
-1. 前端调用 `/api/products` 或 `/api/products/{id}`。
+1. 前端通过统一请求工具调用 `/api/products` 或 `/api/products/{id}`。
 2. ProductController 校验查询参数并调用 ProductService。
-3. ProductService 通过 ProductMapper 查询商品，转换为 ProductVO。
-4. Controller 返回 `ApiResponse<ProductVO>` 或 `ApiResponse<List<ProductVO>>`。
+3. ProductService 根据 `page`、`pageSize` 计算分页偏移量，通过 ProductMapper 查询商品和总数，转换为 ProductVO。
+4. Controller 返回 `ApiResponse<ProductVO>` 或 `ApiResponse<PageVO<ProductVO>>`。
 
 **购物车流程**：
 1. 前端调用 `/api/cart/items` 添加商品或修改数量。
@@ -69,7 +69,7 @@ graph TD
 
 | 方法 | 路径 | 描述 | 认证 | 请求体 | 响应体 |
 |------|------|------|------|--------|--------|
-| GET | `/api/products` | 商品列表和搜索 | 预留 | — | `List<ProductVO>` |
+| GET | `/api/products` | 商品分页列表和搜索 | 预留 | — | `PageVO<ProductVO>` |
 | GET | `/api/products/{id}` | 商品详情 | 预留 | — | `ProductVO` |
 | GET | `/api/cart` | 查询购物车 | 预留 | — | `CartVO` |
 | POST | `/api/cart/items` | 加入购物车 | 预留 | `AddCartItemRequest` | `CartVO` |
@@ -100,6 +100,18 @@ graph TD
 | category | query | String | 否 | 商品分类 |
 | minPrice | query | BigDecimal | 否 | 最低价格 |
 | maxPrice | query | BigDecimal | 否 | 最高价格 |
+| page | query | Integer | 否 | 页码，默认 1 |
+| pageSize | query | Integer | 否 | 每页数量，默认 6，最大 50 |
+
+### 商品分页响应
+
+| 字段名 | Java 类型 | 说明 |
+|--------|-----------|------|
+| items | `List<ProductVO>` | 当前页商品列表 |
+| total | long | 符合筛选条件的商品总数 |
+| page | int | 当前页码 |
+| pageSize | int | 每页数量 |
+| totalPages | int | 总页数 |
 
 ### 请求 DTO
 
@@ -257,6 +269,7 @@ graph TD
 | Controller 切片测试 | `ProductControllerTest` | @WebMvcTest | 列表、详情响应 |
 | Controller 切片测试 | `CartControllerTest` | @WebMvcTest | 加购参数校验、查询购物车 |
 | Controller 切片测试 | `OrderControllerTest` | @WebMvcTest | 下单、订单查询、取消 |
+| Repository 切片测试 | `ProductMapperTest` | @MybatisTest | 分类筛选和分页 SQL |
 
 ---
 
@@ -264,4 +277,5 @@ graph TD
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.1 | 2026-06-10 | 补充商品分页查询接口、分页响应结构和 Mapper slice 测试策略 | @dev |
 | v1.0 | 2026-06-09 | 根据需求文档创建初始技术设计 | @dev |

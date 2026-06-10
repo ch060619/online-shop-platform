@@ -240,6 +240,15 @@ a {
   background: #ffffff;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  color: #4b5c76;
+}
+
 .checkout-grid {
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -292,7 +301,8 @@ a {
 
   .section-title,
   .summary-bar,
-  .buy-row {
+  .buy-row,
+  .pagination-bar {
     align-items: stretch;
     flex-direction: column;
   }

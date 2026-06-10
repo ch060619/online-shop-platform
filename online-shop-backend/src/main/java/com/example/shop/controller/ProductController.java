@@ -2,11 +2,11 @@ package com.example.shop.controller;
 
 import com.example.shop.common.ApiResponse;
 import com.example.shop.domain.dto.ProductSearchRequest;
+import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
 import com.example.shop.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,11 +36,11 @@ public class ProductController {
      * 查询商品列表。
      *
      * @param request 商品搜索请求
-     * @return 商品列表响应
+     * @return 商品分页列表响应
      */
     @GetMapping
-    @Operation(summary = "查询商品列表", description = "支持按商品名称、分类和价格区间搜索商品")
-    public ApiResponse<List<ProductVO>> listProducts(@Valid ProductSearchRequest request) {
+    @Operation(summary = "分页查询商品列表", description = "支持按商品名称、分类、价格区间和页码搜索商品")
+    public ApiResponse<PageVO<ProductVO>> listProducts(@Valid ProductSearchRequest request) {
         return ApiResponse.success(productService.search(request));
     }
 

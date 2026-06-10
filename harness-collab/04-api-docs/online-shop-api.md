@@ -1,9 +1,9 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.2  
+**文档版本**：v1.3  
 **创建时间**：2026-06-09  
-**最后更新**：2026-06-09  
+**最后更新**：2026-06-10  
 **负责人**：@dev
 
 ---
@@ -21,10 +21,26 @@
 
 | 方法 | 路径 | 描述 | 请求参数 |
 |------|------|------|----------|
-| GET | `/api/products` | 商品列表和搜索 | `name`、`category`、`minPrice`、`maxPrice` |
+| GET | `/api/products` | 商品分页列表和搜索 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 | GET | `/api/products/{id}` | 商品详情 | path: `id` |
 
 **商品响应字段**：`id`、`name`、`category`、`price`、`stock`、`imageUrl`、`description`
+
+**商品分页响应字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `items` | Array<Product> | 当前页商品列表 |
+| `total` | Number | 符合筛选条件的商品总数 |
+| `page` | Number | 当前页码，从 1 开始 |
+| `pageSize` | Number | 每页商品数，取值 1-50 |
+| `totalPages` | Number | 总页数 |
+
+**商品分页请求示例**：
+
+```http
+GET /api/products?category=数码配件&page=1&pageSize=6
+```
 
 ---
 
@@ -101,6 +117,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.3 | 2026-06-10 | 商品列表接口新增 `page`、`pageSize` 分页参数，并返回 `items`、`total`、`page`、`pageSize`、`totalPages` 分页结构 | @dev |
 | v1.2 | 2026-06-09 | 订单接口补齐 CRUD：新增更新订单和删除已取消订单接口；后端升级 Spring Boot 3 + MyBatis Plus | @dev |
 | v1.1 | 2026-06-09 | 新增用户登录、Bearer Token 认证和受保护接口说明 | @dev |
 | v1.0 | 2026-06-09 | 新增商品、购物车、订单核心接口 | @dev |

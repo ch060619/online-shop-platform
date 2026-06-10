@@ -1,10 +1,10 @@
 # Online Shop Platform
 
-一个前后端分离的在线商城示例项目。后端使用 Spring Boot、MyBatis 和 SQLite/MySQL，前端使用 Vue 3、Vite、Element Plus 和 Axios，实现商品浏览、购物车、下单、订单查询与取消等核心购物流程。
+一个前后端分离的在线商城示例项目。后端使用 Spring Boot、MyBatis Plus 和 SQLite/MySQL，前端使用 Vue 3、Vite、Element Plus 和 Axios，实现商品浏览、分页筛选、购物车、下单、订单查询与取消等核心购物流程。
 
 ## 主要功能
 
-- 商品列表：支持按商品名称、分类、价格区间查询商品。
+- 商品列表：支持按商品名称、分类、价格区间分页查询商品，每次切换页码或筛选条件都会发起接口请求。
 - 商品详情：查看商品价格、库存、描述等信息。
 - 用户登录：演示账号登录后获取 Bearer Token，购物车和订单接口基于 token 识别当前用户。
 - 购物车：加入商品、修改数量、删除商品、查看购物车总价。
@@ -16,11 +16,12 @@
 
 ### 后端
 
-- Java 8
-- Spring Boot 2.2.13
+- Java 17
+- Spring Boot 3.2.x
 - Spring MVC
-- MyBatis
-- Apache Shiro
+- MyBatis Plus
+- Jakarta Validation
+- Apache Shiro Jakarta
 - Druid
 - SQLite JDBC / MySQL Connector
 - JUnit、JaCoCo、Checkstyle、SpotBugs
@@ -56,7 +57,8 @@
 │       └── data-sqlite.sql           # SQLite 初始化数据
 ├── online-shop-frontend/             # Vue 前端应用
 │   ├── src
-│   │   ├── api.js                    # Axios API 封装
+│   │   ├── request.js                # Axios 请求实例、拦截器和错误处理
+│   │   ├── api.js                    # 业务 API 封装
 │   │   ├── router.js                 # 页面路由
 │   │   ├── views/                    # 商品、购物车、结算、订单页面
 │   │   └── styles.css                # 全局样式
@@ -80,7 +82,7 @@
 | 模块 | 方法 | 路径 | 说明 |
 |------|------|------|------|
 | 认证 | `POST` | `/api/auth/login` | 用户登录，返回 Bearer Token |
-| 商品 | `GET` | `/api/products` | 查询商品列表 |
+| 商品 | `GET` | `/api/products` | 分页查询商品列表，支持名称、分类、价格区间筛选 |
 | 商品 | `GET` | `/api/products/{id}` | 查询商品详情 |
 | 购物车 | `GET` | `/api/cart` | 查询当前用户购物车 |
 | 购物车 | `POST` | `/api/cart/items` | 加入购物车 |
@@ -104,6 +106,19 @@ Authorization: Bearer <token>
 密码：demo123
 ```
 
+商品列表接口常用查询参数：
+
+| 参数 | 说明 |
+|------|------|
+| `name` | 商品名称模糊搜索 |
+| `category` | 商品分类 |
+| `minPrice` | 最低价格 |
+| `maxPrice` | 最高价格 |
+| `page` | 页码，默认 `1` |
+| `pageSize` | 每页数量，默认 `6`，最大 `50` |
+
+商品分页响应位于统一响应的 `data` 字段下，包含 `items`、`total`、`page`、`pageSize` 和 `totalPages`。
+
 ## 页面路由
 
 | 路径 | 页面 |
@@ -118,7 +133,7 @@ Authorization: Bearer <token>
 
 ## 环境要求
 
-- JDK 8
+- JDK 17
 - Maven 3.6+
 - Node.js 18+ 和 npm
 - Windows 用户可直接使用根目录 `start.bat`

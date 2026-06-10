@@ -2,7 +2,7 @@
 
 本文档是项目所有功能的资产登记表，记录每个功能的当前状态、负责人和关联文档。每次功能状态发生变更时，必须同步更新本表。
 
-**最后更新**：2026-06-09
+**最后更新**：2026-06-10
 
 ---
 
@@ -11,7 +11,7 @@
 | 功能名称 | 状态 | 负责人 | 需求文档 | 设计文档 | API 文档 | 最后更新 |
 |----------|------|--------|----------|----------|----------|----------|
 | 用户管理 | 已交付 | @dev | [用户管理需求](01-product-specs/user-management-spec.md) | [用户管理设计](02-design-docs/user-management-design.md) | [用户 API](04-api-docs/user-api.md) | 2024-01-01 |
-| 电商购物平台 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-09 |
+| 电商购物平台 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-10 |
 | 用户登录与 Token 认证 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-09 |
 | 订单 CRUD 管理 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-09 |
 

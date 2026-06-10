@@ -23,6 +23,8 @@ public interface ProductMapper {
      * @param category 分类
      * @param minPrice 最低价格
      * @param maxPrice 最高价格
+     * @param pageSize 每页数量
+     * @param offset 起始偏移量
      * @return 商品列表
      */
     @Select("<script>"
@@ -33,11 +35,35 @@ public interface ProductMapper {
             + "<if test='minPrice != null'>AND price &gt;= #{minPrice} </if>"
             + "<if test='maxPrice != null'>AND price &lt;= #{maxPrice} </if>"
             + "ORDER BY id ASC"
+            + " LIMIT #{pageSize} OFFSET #{offset}"
             + "</script>")
     List<Product> search(@Param("name") String name,
                          @Param("category") String category,
                          @Param("minPrice") BigDecimal minPrice,
-                         @Param("maxPrice") BigDecimal maxPrice);
+                         @Param("maxPrice") BigDecimal maxPrice,
+                         @Param("pageSize") int pageSize,
+                         @Param("offset") int offset);
+
+    /**
+     * 统计符合条件的商品数。
+     *
+     * @param name 商品名关键词
+     * @param category 分类
+     * @param minPrice 最低价格
+     * @param maxPrice 最高价格
+     * @return 商品总数
+     */
+    @Select("<script>"
+            + "SELECT COUNT(*) FROM product WHERE 1=1 "
+            + "<if test='name != null and name != \"\"'>AND name LIKE '%' || #{name} || '%' </if>"
+            + "<if test='category != null and category != \"\"'>AND category = #{category} </if>"
+            + "<if test='minPrice != null'>AND price &gt;= #{minPrice} </if>"
+            + "<if test='maxPrice != null'>AND price &lt;= #{maxPrice} </if>"
+            + "</script>")
+    long count(@Param("name") String name,
+               @Param("category") String category,
+               @Param("minPrice") BigDecimal minPrice,
+               @Param("maxPrice") BigDecimal maxPrice);
 
     /**
      * 根据 ID 查询商品。

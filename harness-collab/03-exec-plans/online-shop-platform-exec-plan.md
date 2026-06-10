@@ -3,7 +3,7 @@
 **关联需求**：[电商购物平台需求](../01-product-specs/online-shop-platform-spec.md)  
 **关联设计**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
 **创建时间**：2026-06-09  
-**最后更新**：2026-06-09  
+**最后更新**：2026-06-10  
 **负责人**：@dev
 
 ---
@@ -28,6 +28,9 @@
 | 2026-06-09 19:13 | `npm run build` | 通过 | — | — | 前端 Vite 构建通过，存在 chunk 体积提示 |
 | 2026-06-09 19:23 | `mvn clean verify -Pharness-new` | 通过 | 86.11% | 3.66% | 后端 29 个测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-09 22:52 | `mvn clean verify -Pharness-new` | 通过 | 88.71% | 5.13% | 后端 48 个测试通过；Spring Boot 3 + MyBatis Plus 订单 CRUD 验证通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-10 19:21 | `mvn test` | 通过 | — | — | 后端 49 个测试通过，商品分页 service/controller 测试通过 |
+| 2026-06-10 19:29 | `mvn clean verify -Pharness-new` | 通过 | 89.30% | 5.22% | 后端 50 个测试通过，商品分页 Mapper slice 测试通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-10 19:28 | `npm run build` | 通过 | — | — | 前端异步请求封装与商品分页筛选构建通过，存在 chunk 体积提示 |
 
 ### 覆盖率趋势
 
@@ -35,6 +38,7 @@
 |------|---------|-----------|-----------|---------|
 | 2026-06-09 | 86.11% | 3.66% | — | — |
 | 2026-06-09 | 88.71% | 5.13% | 67.61% | 100% |
+| 2026-06-10 | 89.30% | 5.22% | 68.66% | 100% |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 

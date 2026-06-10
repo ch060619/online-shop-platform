@@ -2,6 +2,7 @@ package com.example.shop.service.impl;
 
 import com.example.shop.domain.dto.ProductSearchRequest;
 import com.example.shop.domain.entity.Product;
+import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
 import com.example.shop.exception.BusinessException;
 import com.example.shop.repository.mapper.ProductMapper;
@@ -31,22 +32,33 @@ public class ProductServiceImpl implements ProductService {
      * 按条件查询商品。
      *
      * @param request 商品搜索请求
-     * @return 商品列表
+     * @return 商品分页列表
      */
     @Override
-    public List<ProductVO> search(ProductSearchRequest request) {
+    public PageVO<ProductVO> search(ProductSearchRequest request) {
         ProductSearchRequest actualRequest = request == null ? new ProductSearchRequest() : request;
         if (actualRequest.getMinPrice() != null && actualRequest.getMaxPrice() != null
                 && actualRequest.getMinPrice().compareTo(actualRequest.getMaxPrice()) > 0) {
             throw new BusinessException("最低价格不能大于最高价格");
         }
-        return productMapper.search(
+        int page = actualRequest.getPage() == null ? 1 : actualRequest.getPage();
+        int pageSize = actualRequest.getPageSize() == null ? 6 : actualRequest.getPageSize();
+        int offset = (page - 1) * pageSize;
+        long total = productMapper.count(
                 actualRequest.getName(),
                 actualRequest.getCategory(),
                 actualRequest.getMinPrice(),
-                actualRequest.getMaxPrice()).stream()
+                actualRequest.getMaxPrice());
+        List<ProductVO> items = productMapper.search(
+                actualRequest.getName(),
+                actualRequest.getCategory(),
+                actualRequest.getMinPrice(),
+                actualRequest.getMaxPrice(),
+                pageSize,
+                offset).stream()
                 .map(this::toProductVO)
                 .collect(Collectors.toList());
+        return PageVO.of(items, total, page, pageSize);
     }
 
     /**

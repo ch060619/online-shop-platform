@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.ProductSearchRequest;
+import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
 import com.example.shop.service.ProductService;
 import java.math.BigDecimal;
@@ -36,12 +37,19 @@ class ProductControllerTest {
     @Test
     void should_returnProducts_when_requestListApi() throws Exception {
         when(productService.search(ArgumentMatchers.any(ProductSearchRequest.class)))
-                .thenReturn(Collections.singletonList(product()));
+                .thenReturn(PageVO.of(Collections.singletonList(product()), 1, 1, 6));
 
-        mockMvc.perform(get("/api/products").param("name", "键盘"))
+        mockMvc.perform(get("/api/products")
+                        .param("name", "键盘")
+                        .param("category", "数码配件")
+                        .param("page", "1")
+                        .param("pageSize", "6"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data[0].name").value("机械键盘"));
+                .andExpect(jsonPath("$.data.items[0].name").value("机械键盘"))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.pageSize").value(6));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.example.shop.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.shop.domain.dto.ProductSearchRequest;
@@ -31,12 +32,34 @@ class ProductServiceImplTest {
     @Test
     void should_returnProducts_when_searchConditionValid() {
         Product product = product();
-        when(productMapper.search("键盘", null, null, null)).thenReturn(Collections.singletonList(product));
+        when(productMapper.count("键盘", null, null, null)).thenReturn(1L);
+        when(productMapper.search("键盘", null, null, null, 6, 0)).thenReturn(Collections.singletonList(product));
         ProductSearchRequest request = new ProductSearchRequest();
         request.setName("键盘");
 
-        assertThat(productService.search(request)).hasSize(1);
-        assertThat(productService.search(request).get(0).getName()).isEqualTo("机械键盘");
+        var page = productService.search(request);
+
+        assertThat(page.getItems()).hasSize(1);
+        assertThat(page.getItems().get(0).getName()).isEqualTo("机械键盘");
+        assertThat(page.getTotal()).isEqualTo(1);
+        assertThat(page.getPage()).isEqualTo(1);
+        assertThat(page.getPageSize()).isEqualTo(6);
+    }
+
+    @Test
+    void should_querySecondPage_when_pageParamsProvided() {
+        ProductSearchRequest request = new ProductSearchRequest();
+        request.setCategory("数码配件");
+        request.setPage(2);
+        request.setPageSize(2);
+        when(productMapper.count(null, "数码配件", null, null)).thenReturn(3L);
+        when(productMapper.search(null, "数码配件", null, null, 2, 2)).thenReturn(Collections.emptyList());
+
+        var page = productService.search(request);
+
+        assertThat(page.getTotal()).isEqualTo(3);
+        assertThat(page.getTotalPages()).isEqualTo(2);
+        verify(productMapper).search(null, "数码配件", null, null, 2, 2);
     }
 
     @Test
