@@ -2,7 +2,7 @@
 
 **关联需求**：[电商购物平台深挖增强需求](../01-product-specs/online-shop-platform-enhancement-spec.md)  
 **关联设计**：[电商购物平台深挖增强设计](../02-design-docs/online-shop-platform-enhancement-design.md)  
-**文档状态**：执行中  
+**文档状态**：已交付  
 **创建时间**：2026-06-15  
 **最后更新**：2026-06-15  
 **负责人**：@dev
@@ -49,6 +49,12 @@
 | 2026-06-15 | `.\scripts\loadtest\run-jmeter.ps1 -BaseUrl http://localhost:18080 -Threads 5 -RampSeconds 5 -DurationSeconds 30` | 通过 | 不适用 | 不适用 | JMeter 实测 5003 samples，QPS 166.77，P95 143ms，P99 208ms，错误率 0%，缓存命中率 99.9% |
 | 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 88.72% | 11.79% | 压测与 SQL 优化全量门禁，124 个测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-15 | `mvn test jacoco:report jacoco:check@jacoco-check` | 通过 | 88.72% | 11.79% | 压测与 SQL 优化显式 JaCoCo 校验通过，方法覆盖率 74.61% |
+| 2026-06-15 | 文档自检：Dockerfile、Compose、Docker profile、OpenAPI、错误码、核心流程图、func.md 链接核对 | 通过 | 不适用 | 不适用 | 部署与文档阶段定向检查通过 |
+| 2026-06-15 | `mvn "-Dtest=OpenApiConfigTest,DockerProfileConfigTest" test` | 通过 | 不适用 | 不适用 | SpringDoc 与 Docker profile 定向检查，2 个测试通过 |
+| 2026-06-15 | `docker compose config` | 通过 | 不适用 | 不适用 | Compose 配置解析通过，包含 MySQL、Redis、RabbitMQ、backend 服务 |
+| 2026-06-15 | `npm run build` | 通过 | 不适用 | 不适用 | 前端生产构建通过；Vite 输出 chunk size 警告，不阻断构建 |
+| 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 88.84% | 11.79% | 部署与文档阶段全量门禁，126 个测试通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-15 | `mvn test jacoco:report jacoco:check@jacoco-check` | 通过 | 88.84% | 11.79% | 部署与文档阶段显式 JaCoCo 校验通过，方法覆盖率 74.68% |
 
 ### 覆盖率趋势
 
@@ -61,6 +67,7 @@
 | 2026-06-15 RabbitMQ 订单超时阶段 | 88.02% | 10.74% | 70.67% | — |
 | 2026-06-15 鉴权安全阶段 | 83.26% | 10.62% | 69.75% | — |
 | 2026-06-15 压测与 SQL 优化阶段 | 88.72% | 11.79% | 74.61% | — |
+| 2026-06-15 部署与文档阶段 | 88.84% | 11.79% | 74.68% | — |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 
@@ -113,6 +120,7 @@
 | 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 鉴权安全阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 压测与 SQL 优化阶段 | `harness-new` | 0 | 通过 | 无 |
+| 2026-06-15 部署与文档阶段 | `harness-new` | 0 | 通过 | 无 |
 
 ### SpotBugs 检查
 
@@ -125,6 +133,7 @@
 | 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 鉴权安全阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 压测与 SQL 优化阶段 | `harness-new` | 0 | 0 | 通过 |
+| 2026-06-15 部署与文档阶段 | `harness-new` | 0 | 0 | 通过 |
 
 ---
 
@@ -175,19 +184,19 @@
 - [x] 订单状态机阶段已本地 commit
 - [x] RabbitMQ 订单超时阶段已本地 commit
 - [x] 鉴权安全阶段已本地 commit
-- [ ] 压测与 SQL 优化阶段已本地 commit
-- [ ] 部署与文档阶段已本地 commit
+- [x] 压测与 SQL 优化阶段已本地 commit
+- [x] 部署与文档阶段已本地 commit
 
 ---
 
 ## 发布摘要
 
-**发布时间**：待定  
-**发布版本**：待定  
+**发布时间**：2026-06-15  
+**发布版本**：深挖增强本地交付版  
 **发布人**：@dev
 
 **本次发布内容**：
-- 待所有阶段完成后回填。
+- Redis 商品缓存、Redis+Lua 订单幂等、RabbitMQ 订单超时、订单状态机、鉴权安全、压测 SQL 优化、Docker Compose 和 OpenAPI 文档。
 
 **影响范围**：
 - 后端商品、订单、认证、安全、缓存、消息队列、部署和文档。

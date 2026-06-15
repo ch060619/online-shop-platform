@@ -27,6 +27,7 @@
         <mybatis.spring.boot.test.version>3.0.5</mybatis.spring.boot.test.version>
         <sqlite.version>3.42.0.0</sqlite.version>
         <swagger.annotations.version>2.2.22</swagger.annotations.version>
+        <springdoc.version>2.5.0</springdoc.version>
         <lombok.version>1.18.32</lombok.version>
         <jacoco.version>0.8.11</jacoco.version>
         <surefireArgLine></surefireArgLine>
@@ -96,6 +97,11 @@
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
             <version>${swagger.annotations.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

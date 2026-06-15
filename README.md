@@ -27,6 +27,7 @@
 - Apache Shiro Jakarta
 - Druid
 - SQLite JDBC / MySQL Connector
+- SpringDoc OpenAPI
 - JUnit、JaCoCo、Checkstyle、SpotBugs
 
 ### 前端
@@ -59,6 +60,7 @@
 │       ├── application-mysql.yml     # MySQL 数据源配置
 │       ├── schema-sqlite.sql         # SQLite 表结构
 │       └── data-sqlite.sql           # SQLite 初始化数据
+│   └── Dockerfile                    # 后端容器镜像构建
 ├── online-shop-frontend/             # Vue 前端应用
 │   ├── src
 │   │   ├── request.js                # Axios 请求实例、拦截器和错误处理
@@ -71,6 +73,7 @@
 │   └── vite.config.js                # Vite 开发服务和 API 代理
 ├── harness-collab/                   # 项目需求、设计、API 与协作文档
 ├── config/                           # Checkstyle、SpotBugs 配置
+├── docker-compose.yml                # MySQL、Redis、RabbitMQ、后端编排
 ├── start.bat                         # Windows 一键启动脚本
 └── pom.xml                           # Harness 构建与质量门禁配置
 ```
@@ -102,6 +105,13 @@
 | 订单 | `GET` | `/api/orders` | 查询订单列表 |
 | 订单 | `GET` | `/api/orders/{id}` | 查询订单详情 |
 | 订单 | `PUT` | `/api/orders/{id}/cancel` | 取消订单 |
+
+OpenAPI 文档：
+
+| 类型 | 路径 |
+|------|------|
+| OpenAPI JSON | `/v3/api-docs` |
+| Swagger UI | `/swagger-ui.html` |
 
 购物车和订单接口需要在请求头中携带：
 
@@ -224,6 +234,14 @@ npm run dev -- --host 0.0.0.0 --port 5173
 
 前端开发服务默认访问地址为 `http://localhost:5173`，`/api` 请求会代理到 `http://localhost:8080`。
 
+### Docker Compose 启动后端依赖
+
+```powershell
+docker compose up --build
+```
+
+Compose 会启动 MySQL、Redis、RabbitMQ 和后端服务。部署变量和端口说明见 `harness-collab/04-api-docs/deployment.md`。
+
 ## 构建与测试
 
 后端测试：
@@ -240,7 +258,7 @@ cd online-shop-backend
 mvn clean verify -Pharness-new
 ```
 
-最近一次后端验证结果：`2026-06-10 21:38` 执行 `mvn clean verify -Pharness-new` 通过，64 个测试全部通过，Checkstyle 0 违规，SpotBugs 0 Bug；`2026-06-10 21:39` 生成 JaCoCo 报告并执行覆盖率检查通过，行覆盖率 `89.71%`。
+最近一次后端验证结果记录见 `harness-collab/03-exec-plans/online-shop-platform-enhancement-exec-plan.md`。
 
 前端构建：
 

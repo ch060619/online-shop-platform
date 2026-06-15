@@ -1,0 +1,13 @@
+.git
+.github
+.codex
+.local-tools
+load-test-results
+logs
+reports
+target
+**/target
+**/node_modules
+**/dist
+**/*.db
+**/*.log

@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v2.1
+**文档版本**：v2.2
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-15  
 **负责人**：@dev
@@ -11,6 +11,8 @@
 ## 概述
 
 - **基础路径**：`/api`
+- **OpenAPI JSON**：`/v3/api-docs`
+- **Swagger UI**：`/swagger-ui.html`
 - **认证方式**：商品查询接口公开访问；商品新增、更新、删除接口必须携带 ADMIN 角色 `Authorization: Bearer <accessToken>`；购物车和订单接口必须携带 USER 或 ADMIN 角色 `Authorization: Bearer <accessToken>`
 - **内容类型**：`application/json`
 - **统一响应**：`{ "code": 200, "message": "success", "data": ..., "page": null }`
@@ -168,12 +170,12 @@ Authorization: Bearer eyJ...
 | 业务码 | 说明 |
 |--------|------|
 | 200 | 成功 |
-| 400 | 请求参数错误或业务校验失败 |
+| 400 | 请求参数错误、参数类型错误或业务校验失败 |
 | 401 | 未登录、令牌无效或令牌过期 |
 | 403 | 普通用户访问 ADMIN 管理接口 |
 | 409 | 幂等键冲突或同一订单请求仍在处理中 |
-| 404 | 商品、购物车明细或订单不存在 |
-| 500 | 服务器内部错误 |
+| 404 | 接口不存在，或商品、购物车明细、订单不存在 |
+| 500 | 服务器内部错误；响应消息会包含服务端异常摘要 |
 
 ## Postman / ApiFox 覆盖测试清单
 
@@ -205,6 +207,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v2.2 | 2026-06-15 | 增加 SpringDoc OpenAPI 地址、Swagger UI 地址和部署文档链接，补充错误码说明 | @dev |
 | v2.1 | 2026-06-15 | 新增 `/api/products/cache/metrics` 商品缓存指标接口，用于记录缓存命中率验证数据 | @dev |
 | v2.0 | 2026-06-15 | 登录响应扩展 access token、refresh token、过期时间和角色字段；新增 `/api/auth/refresh`；商品写接口改为 ADMIN 权限 | @dev |
 | v1.9 | 2026-06-15 | 将订单超时关闭说明更新为 RabbitMQ TTL/DLX 超时消息，并明确重复投递幂等 | @dev |

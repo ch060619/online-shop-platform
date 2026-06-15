@@ -12,6 +12,19 @@ mvn spring-boot:run
 mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
+Docker profile 由根目录 `docker-compose.yml` 使用：
+
+```powershell
+docker compose up --build
+```
+
+## OpenAPI
+
+启动后端后访问：
+
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
 ## 验证
 
 ```powershell
