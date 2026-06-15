@@ -33,6 +33,9 @@
 | 2026-06-15 | `mvn "-Dtest=ProductServiceImplTest,RedisProductCacheServiceTest" test` | 通过 | 不适用 | 不适用 | Redis 商品缓存定向检查，22 个测试通过 |
 | 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 89.39% | 9.22% | Redis 阶段全量门禁，77 个测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 89.39% | 9.22% | Redis 阶段显式 JaCoCo 校验通过，方法覆盖率 71.11% |
+| 2026-06-15 | `mvn "-Dtest=OrderServiceImplTest,OrderControllerTest,RedisOrderIdempotencyServiceTest,OrderIdempotencyConcurrencyTest" test` | 通过 | 不适用 | 不适用 | 订单幂等定向检查，32 个测试通过 |
+| 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 89.34% | 10.21% | 订单幂等全量门禁，90 个测试通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 89.34% | 10.21% | 订单幂等显式 JaCoCo 校验通过，方法覆盖率 71.74% |
 
 ### 覆盖率趋势
 
@@ -40,6 +43,7 @@
 |------|---------|-----------|-----------|---------|
 | 2026-06-15 | 89.71% | 6.74% | 69.59% | — |
 | 2026-06-15 Redis 商品缓存阶段 | 89.39% | 9.22% | 71.11% | — |
+| 2026-06-15 订单幂等阶段 | 89.34% | 10.21% | 71.74% | — |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 
@@ -67,6 +71,7 @@
 | 2 | 非 ASCII 工作区路径下 JaCoCo 未稳定生成默认 `target/jacoco.exec`，导致显式覆盖率门禁无法读取执行数据 | P1 | 2026-06-15 | 已解决 | 在后端 `pom.xml` 配置 ASCII 路径 `C:/codex-jacoco/online-shop-backend.exec`，并补充 Surefire `argLine` 与 JaCoCo 插件配置 | 2026-06-15 |
 | 3 | Redis 阶段首次全量门禁发现 `catch` 右花括号不符合严格 Checkstyle 风格 | P2 | 2026-06-15 | 已解决 | 将 `try` 结束花括号与 `catch` 拆成独立行，保持项目严格规则一致 | 2026-06-15 |
 | 4 | 热点商品预热测试发现不存在商品会重复写入空值缓存 | P2 | 2026-06-15 | 已解决 | 保留 `getById` 内部空值缓存写入，预热 catch 只吞掉不存在商品异常 | 2026-06-15 |
+| 5 | 订单幂等测试泛型 matcher 导致 Mockito `thenReturn` 编译失败 | P2 | 2026-06-15 | 已解决 | 将 RedisScript matcher 拆为 `RedisScript<List>` 和 `RedisScript<Long>` 两个强类型 helper | 2026-06-15 |
 
 ---
 
@@ -78,6 +83,7 @@
 |----------|---------|---------|------|-------------|
 | 2026-06-15 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 Redis 商品缓存阶段 | `harness-new` | 0 | 通过 | 无 |
+| 2026-06-15 订单幂等阶段 | `harness-new` | 0 | 通过 | 无 |
 
 ### SpotBugs 检查
 
@@ -85,6 +91,7 @@
 |----------|---------|---------|---------|------|
 | 2026-06-15 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 Redis 商品缓存阶段 | `harness-new` | 0 | 0 | 通过 |
+| 2026-06-15 订单幂等阶段 | `harness-new` | 0 | 0 | 通过 |
 
 ---
 
@@ -121,7 +128,7 @@
 
 ### 文档同步
 
-- [ ] API 文档已更新（`harness-collab/04-api-docs/` 对应文档）
+- [x] API 文档已更新（`harness-collab/04-api-docs/` 对应文档）
 - [x] `harness-collab/func.md` 功能状态已更新
 - [x] 本执行计划文档已完整填写
 

@@ -20,6 +20,15 @@ public interface OrderService {
     OrderVO createOrder(CreateOrderRequest request);
 
     /**
+     * 根据当前用户购物车幂等创建订单。
+     *
+     * @param request 创建订单请求
+     * @param idempotencyKey 幂等键
+     * @return 订单详情
+     */
+    OrderVO createOrder(CreateOrderRequest request, String idempotencyKey);
+
+    /**
      * 查询当前用户订单列表。
      *
      * @return 订单摘要列表

@@ -37,3 +37,7 @@ shop:
       list-ttl-random-seconds: 60
       null-ttl-seconds: 60
       preload-product-ids: 1,2,3
+  idempotency:
+    order:
+      processing-ttl-seconds: 30
+      success-ttl-seconds: 86400

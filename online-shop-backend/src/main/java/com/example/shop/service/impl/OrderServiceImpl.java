@@ -16,7 +16,10 @@ import com.example.shop.repository.mapper.CartItemMapper;
 import com.example.shop.repository.mapper.OrderItemMapper;
 import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.ProductMapper;
+import com.example.shop.service.OrderIdempotencyService;
 import com.example.shop.service.OrderService;
+import com.example.shop.service.idempotency.OrderIdempotencyAction;
+import com.example.shop.service.idempotency.OrderIdempotencyDecision;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +41,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductMapper productMapper;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
+    private final OrderIdempotencyService orderIdempotencyService;
 
     /**
      * 创建订单服务实现。
@@ -46,15 +50,18 @@ public class OrderServiceImpl implements OrderService {
      * @param productMapper 商品 Mapper
      * @param orderMapper 订单 Mapper
      * @param orderItemMapper 订单明细 Mapper
+     * @param orderIdempotencyService 订单幂等服务
      */
     public OrderServiceImpl(CartItemMapper cartItemMapper,
                             ProductMapper productMapper,
                             OrderMapper orderMapper,
-                            OrderItemMapper orderItemMapper) {
+                            OrderItemMapper orderItemMapper,
+                            OrderIdempotencyService orderIdempotencyService) {
         this.cartItemMapper = cartItemMapper;
         this.productMapper = productMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
+        this.orderIdempotencyService = orderIdempotencyService;
     }
 
     /**
@@ -66,6 +73,47 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderVO createOrder(CreateOrderRequest request) {
+        return createOrderWithoutIdempotency(request);
+    }
+
+    /**
+     * 根据当前用户购物车幂等创建订单。
+     *
+     * @param request 创建订单请求
+     * @param idempotencyKey 幂等键
+     * @return 订单详情
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderVO createOrder(CreateOrderRequest request, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.trim().isEmpty()) {
+            throw new BusinessException("Idempotency-Key 不能为空");
+        }
+        Long userId = UserContext.getCurrentUserId();
+        String trimmedKey = idempotencyKey.trim();
+        String requestHash = orderIdempotencyService.fingerprint(request);
+        OrderIdempotencyDecision decision = orderIdempotencyService.begin(userId, trimmedKey, requestHash);
+        if (decision.action() == OrderIdempotencyAction.REPLAY) {
+            return getOrder(decision.orderId().orElseThrow());
+        }
+        if (decision.action() == OrderIdempotencyAction.PROCESSING) {
+            throw new BusinessException(409, "订单正在处理中，请勿重复提交");
+        }
+        if (decision.action() == OrderIdempotencyAction.CONFLICT) {
+            throw new BusinessException(409, "Idempotency-Key 已用于不同请求");
+        }
+        try {
+            OrderVO order = createOrderWithoutIdempotency(request);
+            orderIdempotencyService.markSuccess(userId, trimmedKey, requestHash, order.getId());
+            return order;
+        }
+        catch (RuntimeException exception) {
+            orderIdempotencyService.clearProcessing(userId, trimmedKey, requestHash);
+            throw exception;
+        }
+    }
+
+    private OrderVO createOrderWithoutIdempotency(CreateOrderRequest request) {
         Long userId = UserContext.getCurrentUserId();
         List<CartItemDetail> cartItems = cartItemMapper.findDetailsByUserId(userId);
         if (cartItems.isEmpty()) {

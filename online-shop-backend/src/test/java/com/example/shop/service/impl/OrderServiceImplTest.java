@@ -3,6 +3,7 @@ package com.example.shop.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,8 @@ import com.example.shop.repository.mapper.CartItemMapper;
 import com.example.shop.repository.mapper.OrderItemMapper;
 import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.ProductMapper;
+import com.example.shop.service.OrderIdempotencyService;
+import com.example.shop.service.idempotency.OrderIdempotencyDecision;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -47,6 +50,9 @@ class OrderServiceImplTest {
 
     @Mock
     private OrderItemMapper orderItemMapper;
+
+    @Mock
+    private OrderIdempotencyService orderIdempotencyService;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -78,6 +84,77 @@ class OrderServiceImplTest {
         assertThat(orderService.createOrder(createRequest()).getTotalAmount()).isEqualByComparingTo("20.00");
         assertThat(orderCaptor.getValue().getCreatedAt()).isBetween(beforeCreate, LocalDateTime.now());
         verify(cartItemMapper).deleteByUserId(1L);
+    }
+
+    @Test
+    void should_createOrderOnce_when_idempotencyKeyFirstSeen() {
+        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
+        when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
+        when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
+                .thenReturn(OrderIdempotencyDecision.proceed());
+        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+        when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
+        when(orderMapper.insert(orderCaptor.capture())).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(10L);
+            return 1;
+        });
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.createOrder(createRequest(), "order-key-1").getId()).isEqualTo(10L);
+        verify(orderIdempotencyService).markSuccess(1L, "order-key-1", "hash-1", 10L);
+        verify(productMapper).decreaseStock(1L, 2);
+    }
+
+    @Test
+    void should_returnExistingOrder_when_idempotencyReplay() {
+        when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
+        when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
+                .thenReturn(OrderIdempotencyDecision.replay(10L));
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.createOrder(createRequest(), "order-key-1").getOrderNo()).isEqualTo("NO1");
+        verify(productMapper, never()).decreaseStock(1L, 2);
+        verify(orderMapper, never()).insert(any(Order.class));
+    }
+
+    @Test
+    void should_throwException_when_idempotencyRequestProcessing() {
+        when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
+        when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
+                .thenReturn(OrderIdempotencyDecision.processing());
+
+        assertThatThrownBy(() -> orderService.createOrder(createRequest(), "order-key-1"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("订单正在处理中");
+        verify(orderMapper, never()).insert(any(Order.class));
+    }
+
+    @Test
+    void should_throwException_when_idempotencyKeyConflicts() {
+        when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
+        when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
+                .thenReturn(OrderIdempotencyDecision.conflict());
+
+        assertThatThrownBy(() -> orderService.createOrder(createRequest(), "order-key-1"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Idempotency-Key 已用于不同请求");
+        verify(orderMapper, never()).insert(any(Order.class));
+    }
+
+    @Test
+    void should_clearProcessing_when_idempotentCreateFails() {
+        when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
+        when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
+                .thenReturn(OrderIdempotencyDecision.proceed());
+        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> orderService.createOrder(createRequest(), "order-key-1"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("购物车为空");
+        verify(orderIdempotencyService).clearProcessing(1L, "order-key-1", "hash-1");
     }
 
     @Test

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,12 +43,15 @@ public class OrderController {
      * 提交订单。
      *
      * @param request 创建订单请求
+     * @param idempotencyKey 幂等键
      * @return 订单详情响应
      */
     @PostMapping
     @Operation(summary = "提交订单", description = "根据当前用户购物车创建订单")
-    public ApiResponse<OrderVO> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        return ApiResponse.success("提交订单成功", orderService.createOrder(request));
+    public ApiResponse<OrderVO> createOrder(
+            @Valid @RequestBody CreateOrderRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return ApiResponse.success("提交订单成功", orderService.createOrder(request, idempotencyKey));
     }
 
     /**

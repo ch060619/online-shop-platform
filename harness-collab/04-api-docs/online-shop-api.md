@@ -1,9 +1,9 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.6
+**文档版本**：v1.7
 **创建时间**：2026-06-09  
-**最后更新**：2026-06-10  
+**最后更新**：2026-06-15  
 **负责人**：@dev
 
 ---
@@ -99,7 +99,7 @@ Authorization: Bearer eyJ...
 
 | 方法 | 路径 | 描述 | 请求体 |
 |------|------|------|--------|
-| POST | `/api/orders` | 提交订单 | `{ "receiverName": "张三", "receiverPhone": "13800000000", "receiverAddress": "上海市" }` |
+| POST | `/api/orders` | 幂等提交订单 | Header: `Idempotency-Key` + `{ "receiverName": "张三", "receiverPhone": "13800000000", "receiverAddress": "上海市" }` |
 | GET | `/api/orders` | 查询订单列表 | — |
 | GET | `/api/orders/{id}` | 查询订单详情 | — |
 | PUT | `/api/orders/{id}` | 更新订单收货信息 | `{ "receiverName": "李四", "receiverPhone": "13900000000", "receiverAddress": "北京市" }` |
@@ -117,6 +117,13 @@ Authorization: Bearer eyJ...
 
 `createdAt` 由后端应用在创建订单时使用系统时间写入，持久化为 `yyyy-MM-dd HH:mm:ss` 格式；读取时兼容历史 ISO `yyyy-MM-ddTHH:mm:ss` 格式，避免 SQLite 时间戳解析失败。
 
+**订单提交幂等规则**：
+
+- `POST /api/orders` 必须携带 `Idempotency-Key` 请求头，同一次客户端提交重试必须使用同一个值。
+- 同一用户、同一 `Idempotency-Key` 且请求体一致时，重复请求返回同一笔订单，不重复扣减库存。
+- 同一用户、同一 `Idempotency-Key` 但请求体不一致时，返回 `code=409`。
+- 首次请求仍在处理中时，重复请求返回 `code=409`，提示稍后重试。
+
 > 订单接口均需要登录令牌，查询结果只返回当前登录用户的数据。仅 `CREATED` 状态订单允许修改或取消，仅 `CANCELLED` 状态订单允许删除。
 
 ---
@@ -128,6 +135,7 @@ Authorization: Bearer eyJ...
 | 200 | 成功 |
 | 400 | 请求参数错误或业务校验失败 |
 | 401 | 未登录、令牌无效或令牌过期 |
+| 409 | 幂等键冲突或同一订单请求仍在处理中 |
 | 404 | 商品、购物车明细或订单不存在 |
 | 500 | 服务器内部错误 |
 
@@ -145,6 +153,9 @@ Authorization: Bearer eyJ...
 | 查询参数错误 | `GET /api/products/query?page=0` 或 `GET /api/products/not-number` | `code=400` |
 | 业务异常 | `GET /api/products/query?minPrice=100&maxPrice=50` | `code=400`，提示最低价格不能大于最高价格 |
 | 接口不存在 | `GET /api/not-exists` | `code=404`，`message=接口不存在` |
+| 订单幂等提交成功 | `POST /api/orders`，携带新 `Idempotency-Key` | `code=200`，创建一笔订单 |
+| 订单重复提交 | 使用相同 `Idempotency-Key` 和相同请求体重试 `POST /api/orders` | `code=200`，返回同一订单 |
+| 订单幂等冲突 | 使用相同 `Idempotency-Key` 和不同请求体重试 `POST /api/orders` | `code=409` |
 
 ---
 
@@ -152,6 +163,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.7 | 2026-06-15 | `POST /api/orders` 新增必填 `Idempotency-Key` 请求头和 409 幂等冲突说明 | @dev |
 | v1.6 | 2026-06-10 | 明确订单 `createdAt` 的 SQLite 兼容持久化格式和历史 ISO 格式读回兼容策略 | @dev |
 | v1.5 | 2026-06-10 | 明确订单 `createdAt` 由后端应用系统时间写入，修复数据库默认时间导致的时区偏差 | @dev |
 | v1.4 | 2026-06-10 | 新增商品 add/delete/update/query 接口、统一响应分页元信息和 Postman/ApiFox 覆盖测试清单 | @dev |

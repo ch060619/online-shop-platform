@@ -17,7 +17,7 @@
 | 商品详情促销展示 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | 不涉及新增 API | 2026-06-10 |
 | 用户登录与 Token 认证 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-09 |
 | 订单 CRUD 管理 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-10 |
-| 电商购物平台深挖增强 | 🟡 开发中 | @dev | [深挖增强需求](01-product-specs/online-shop-platform-enhancement-spec.md) | [深挖增强设计](02-design-docs/online-shop-platform-enhancement-design.md) | 待同步 | 2026-06-15 |
+| 电商购物平台深挖增强 | 🟡 开发中 | @dev | [深挖增强需求](01-product-specs/online-shop-platform-enhancement-spec.md) | [深挖增强设计](02-design-docs/online-shop-platform-enhancement-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-15 |
 
 ---
 
