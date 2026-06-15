@@ -34,6 +34,7 @@ shop:
   auth:
     token-secret: online-shop-demo-secret
     token-expire-seconds: 7200
+    refresh-token-expire-seconds: 604800
   cache:
     product:
       detail-ttl-seconds: 600

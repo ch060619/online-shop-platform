@@ -17,6 +17,15 @@ class TokenServiceTest {
         String token = tokenService.issueToken(7L);
 
         assertThat(tokenService.parseUserId(token)).isEqualTo(7L);
+        assertThat(tokenService.parseToken(token).role()).isEqualTo("USER");
+    }
+
+    @Test
+    void should_parseToken_when_roleProvided() {
+        TokenService tokenService = new TokenService("test-secret", 60);
+        String token = tokenService.issueAccessToken(7L, "ADMIN");
+
+        assertThat(tokenService.parseToken(token).role()).isEqualTo("ADMIN");
     }
 
     @Test

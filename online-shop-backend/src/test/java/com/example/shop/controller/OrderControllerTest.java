@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.shop.common.TokenClaims;
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.CreateOrderRequest;
 import com.example.shop.domain.dto.UpdateOrderRequest;
@@ -43,7 +44,7 @@ class OrderControllerTest {
 
     @Test
     void should_returnOrder_when_createOrderValid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.createOrder(ArgumentMatchers.any(CreateOrderRequest.class), ArgumentMatchers.eq("order-key-1")))
                 .thenReturn(order());
 
@@ -64,7 +65,7 @@ class OrderControllerTest {
         summary.setId(1L);
         summary.setOrderNo("NO1");
         summary.setTotalAmount(new BigDecimal("20.00"));
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.listOrders()).thenReturn(Collections.singletonList(summary));
 
         mockMvc.perform(get("/api/orders").header("Authorization", "Bearer valid-token"))
@@ -74,7 +75,7 @@ class OrderControllerTest {
 
     @Test
     void should_returnOrder_when_requestDetailApi() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.getOrder(1L)).thenReturn(order());
 
         mockMvc.perform(get("/api/orders/1").header("Authorization", "Bearer valid-token"))
@@ -84,7 +85,7 @@ class OrderControllerTest {
 
     @Test
     void should_returnOrder_when_updateOrderValid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.updateOrder(ArgumentMatchers.eq(1L), ArgumentMatchers.any(UpdateOrderRequest.class)))
                 .thenReturn(order());
 
@@ -99,7 +100,7 @@ class OrderControllerTest {
 
     @Test
     void should_returnOrder_when_cancelOrderValid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.cancelOrder(1L)).thenReturn(order());
 
         mockMvc.perform(put("/api/orders/1/cancel").header("Authorization", "Bearer valid-token"))
@@ -109,7 +110,7 @@ class OrderControllerTest {
 
     @Test
     void should_returnOrder_when_payOrderValid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.payOrder(1L)).thenReturn(order());
 
         mockMvc.perform(put("/api/orders/1/pay").header("Authorization", "Bearer valid-token"))
@@ -120,7 +121,7 @@ class OrderControllerTest {
 
     @Test
     void should_returnSuccess_when_deleteOrderValid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
 
         mockMvc.perform(delete("/api/orders/1").header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isOk())
@@ -129,7 +130,7 @@ class OrderControllerTest {
 
     @Test
     void should_return400_when_createOrderInvalid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
 
         mockMvc.perform(post("/api/orders")
                         .header("Authorization", "Bearer valid-token")
@@ -143,7 +144,7 @@ class OrderControllerTest {
 
     @Test
     void should_return400_when_idempotencyKeyMissing() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(orderService.createOrder(ArgumentMatchers.any(CreateOrderRequest.class), ArgumentMatchers.isNull()))
                 .thenThrow(new BusinessException("Idempotency-Key 不能为空"));
 
@@ -162,6 +163,10 @@ class OrderControllerTest {
         mockMvc.perform(get("/api/orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(401));
+    }
+
+    private TokenClaims tokenClaims(String role) {
+        return new TokenClaims(1L, role, System.currentTimeMillis() / 1000 + 3600);
     }
 
     private OrderVO order() {

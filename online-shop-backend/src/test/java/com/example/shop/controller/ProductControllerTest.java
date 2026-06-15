@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.shop.common.TokenClaims;
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.ProductSearchRequest;
 import com.example.shop.domain.dto.ProductSaveRequest;
@@ -82,8 +83,10 @@ class ProductControllerTest {
     @Test
     void should_returnProduct_when_addProductValid() throws Exception {
         when(productService.add(ArgumentMatchers.any(ProductSaveRequest.class))).thenReturn(product());
+        when(tokenService.parseToken("admin-token")).thenReturn(tokenClaims("ADMIN"));
 
         mockMvc.perform(post("/api/products/add")
+                        .header("Authorization", "Bearer admin-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productJson()))
                 .andExpect(status().isOk())
@@ -95,8 +98,10 @@ class ProductControllerTest {
     void should_returnProduct_when_updateProductValid() throws Exception {
         when(productService.update(ArgumentMatchers.eq(1L), ArgumentMatchers.any(ProductSaveRequest.class)))
                 .thenReturn(product());
+        when(tokenService.parseToken("admin-token")).thenReturn(tokenClaims("ADMIN"));
 
         mockMvc.perform(put("/api/products/update/1")
+                        .header("Authorization", "Bearer admin-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(productJson()))
                 .andExpect(status().isOk())
@@ -106,19 +111,46 @@ class ProductControllerTest {
 
     @Test
     void should_returnSuccess_when_deleteProductValid() throws Exception {
-        mockMvc.perform(delete("/api/products/delete/1"))
+        when(tokenService.parseToken("admin-token")).thenReturn(tokenClaims("ADMIN"));
+
+        mockMvc.perform(delete("/api/products/delete/1").header("Authorization", "Bearer admin-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("删除商品成功"));
     }
 
     @Test
-    void should_return400_when_addProductInvalid() throws Exception {
+    void should_return403_when_userAddProductWithoutAdminRole() throws Exception {
+        when(tokenService.parseToken("user-token")).thenReturn(tokenClaims("USER"));
+
         mockMvc.perform(post("/api/products/add")
+                        .header("Authorization", "Bearer user-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(productJson()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(403))
+                .andExpect(jsonPath("$.message").value("无权访问管理端接口"));
+    }
+
+    @Test
+    void should_return400_when_addProductInvalid() throws Exception {
+        when(tokenService.parseToken("admin-token")).thenReturn(tokenClaims("ADMIN"));
+
+        mockMvc.perform(post("/api/products/add")
+                        .header("Authorization", "Bearer admin-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\",\"category\":\"数码配件\",\"price\":0,\"stock\":-1}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data.name").value("商品名称不能为空"));
+    }
+
+    @Test
+    void should_return401_when_addProductWithoutToken() throws Exception {
+        mockMvc.perform(post("/api/products/add")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(productJson()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -151,5 +183,9 @@ class ProductControllerTest {
     private String productJson() {
         return "{\"name\":\"机械键盘\",\"category\":\"数码配件\",\"price\":299.00,"
                 + "\"stock\":10,\"imageUrl\":\"image\",\"description\":\"desc\"}";
+    }
+
+    private TokenClaims tokenClaims(String role) {
+        return new TokenClaims(1L, role, System.currentTimeMillis() / 1000 + 3600);
     }
 }

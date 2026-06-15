@@ -4,6 +4,16 @@ CREATE TABLE IF NOT EXISTS user (
     password TEXT NOT NULL,
     nickname TEXT NOT NULL,
     phone TEXT,
+    role TEXT NOT NULL DEFAULT 'USER',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS refresh_token (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_hash TEXT NOT NULL UNIQUE,
+    user_id INTEGER NOT NULL,
+    expires_at TEXT NOT NULL,
+    revoked INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

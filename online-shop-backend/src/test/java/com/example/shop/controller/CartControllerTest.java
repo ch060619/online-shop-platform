@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.shop.common.TokenClaims;
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.AddCartItemRequest;
 import com.example.shop.domain.vo.CartVO;
@@ -37,7 +38,7 @@ class CartControllerTest {
     void should_returnCart_when_requestCartApi() throws Exception {
         CartVO cart = new CartVO();
         cart.setTotalQuantity(0);
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(cartService.getCurrentCart()).thenReturn(cart);
 
         mockMvc.perform(get("/api/cart").header("Authorization", "Bearer valid-token"))
@@ -47,7 +48,7 @@ class CartControllerTest {
 
     @Test
     void should_returnCart_when_addItemValid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         when(cartService.addItem(ArgumentMatchers.any(AddCartItemRequest.class))).thenReturn(new CartVO());
 
         mockMvc.perform(post("/api/cart/items")
@@ -60,7 +61,7 @@ class CartControllerTest {
 
     @Test
     void should_return400_when_addItemInvalid() throws Exception {
-        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(tokenService.parseToken("valid-token")).thenReturn(tokenClaims("USER"));
         mockMvc.perform(post("/api/cart/items")
                         .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,5 +75,9 @@ class CartControllerTest {
         mockMvc.perform(get("/api/cart"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(401));
+    }
+
+    private TokenClaims tokenClaims(String role) {
+        return new TokenClaims(1L, role, System.currentTimeMillis() / 1000 + 3600);
     }
 }

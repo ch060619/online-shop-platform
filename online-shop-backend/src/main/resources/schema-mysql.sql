@@ -4,8 +4,21 @@ CREATE TABLE IF NOT EXISTS `user` (
     `password` VARCHAR(100) NOT NULL,
     `nickname` VARCHAR(50) NOT NULL,
     `phone` VARCHAR(30),
+    `role` VARCHAR(20) NOT NULL DEFAULT 'USER',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `refresh_token` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `token_hash` VARCHAR(128) NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `revoked` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_refresh_token_hash` (`token_hash`),
+    KEY `idx_refresh_token_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `product` (

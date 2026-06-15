@@ -29,6 +29,14 @@ class CommonSupportTest {
         UserContext.setCurrentUserId(9L);
 
         assertThat(UserContext.getCurrentUserId()).isEqualTo(9L);
+        assertThat(UserContext.getCurrentRole()).isEqualTo("USER");
+    }
+
+    @Test
+    void should_returnConfiguredRole_when_contextSet() {
+        UserContext.setCurrentUser(9L, "ADMIN");
+
+        assertThat(UserContext.getCurrentRole()).isEqualTo("ADMIN");
     }
 
     @Test

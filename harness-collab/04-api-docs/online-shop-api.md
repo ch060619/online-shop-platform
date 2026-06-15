@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.9
+**文档版本**：v2.0
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-15  
 **负责人**：@dev
@@ -11,7 +11,7 @@
 ## 概述
 
 - **基础路径**：`/api`
-- **认证方式**：商品接口公开访问；登录后端返回 Bearer Token，购物车和订单接口必须携带 `Authorization: Bearer <token>`
+- **认证方式**：商品查询接口公开访问；商品新增、更新、删除接口必须携带 ADMIN 角色 `Authorization: Bearer <accessToken>`；购物车和订单接口必须携带 USER 或 ADMIN 角色 `Authorization: Bearer <accessToken>`
 - **内容类型**：`application/json`
 - **统一响应**：`{ "code": 200, "message": "success", "data": ..., "page": null }`
 - **分页响应**：分页接口会额外返回 `page` 元信息；为兼容既有前端，`data` 中仍保留分页对象。
@@ -24,9 +24,9 @@
 |------|------|------|----------|
 | GET | `/api/products` | 商品分页列表和搜索 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 | GET | `/api/products/{id}` | 商品详情 | path: `id` |
-| POST | `/api/products/add` | 新增商品 | JSON 请求体 |
-| DELETE | `/api/products/delete/{id}` | 删除商品 | path: `id` |
-| PUT | `/api/products/update/{id}` | 更新商品 | path: `id` + JSON 请求体 |
+| POST | `/api/products/add` | 新增商品 | ADMIN + JSON 请求体 |
+| DELETE | `/api/products/delete/{id}` | 删除商品 | ADMIN + path: `id` |
+| PUT | `/api/products/update/{id}` | 更新商品 | ADMIN + path: `id` + JSON 请求体 |
 | GET | `/api/products/query` | 商品分页查询兼容入口 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 
 **商品响应字段**：`id`、`name`、`category`、`price`、`stock`、`imageUrl`、`description`
@@ -60,21 +60,43 @@
 GET /api/products?category=数码配件&page=1&pageSize=6
 ```
 
+> 商品新增、更新、删除接口仅允许 ADMIN 角色访问；普通 USER 访问返回 `code=403`。
+
 ---
 
 ## 用户认证接口
 
 | 方法 | 路径 | 描述 | 请求体 |
 |------|------|------|--------|
-| POST | `/api/auth/login` | 用户登录并签发令牌 | `{ "username": "demo", "password": "demo123" }` |
+| POST | `/api/auth/login` | 用户登录并签发 access token 与 refresh token | `{ "username": "demo", "password": "demo123" }` |
+| POST | `/api/auth/refresh` | 使用 refresh token 轮换新令牌 | `{ "refreshToken": "..." }` |
 
-**登录响应字段**：`token`、`userId`、`username`、`nickname`
+**登录响应字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `token` | String | 兼容旧前端字段，值等同于 `accessToken` |
+| `accessToken` | String | 短期访问令牌，用于 `Authorization` 请求头 |
+| `refreshToken` | String | 刷新令牌；服务端仅保存 SHA-256 摘要，可过期、可撤销 |
+| `expiresInSeconds` | Number | access token 有效秒数，默认 7200 |
+| `tokenType` | String | 固定为 `Bearer` |
+| `role` | String | 用户角色，`USER` 或 `ADMIN` |
+| `userId` | Number | 用户 ID |
+| `username` | String | 用户名 |
+| `nickname` | String | 用户昵称 |
 
 **调用受保护接口示例**：
 
 ```http
 Authorization: Bearer eyJ...
 ```
+
+**测试账号**：
+
+| 用户名 | 密码 | 角色 | 说明 |
+|--------|------|------|------|
+| `demo` | `demo123` | USER | 用户端购物车、订单链路 |
+| `admin` | `admin123` | ADMIN | 管理端商品写接口 |
 
 ---
 
@@ -145,6 +167,7 @@ Authorization: Bearer eyJ...
 | 200 | 成功 |
 | 400 | 请求参数错误或业务校验失败 |
 | 401 | 未登录、令牌无效或令牌过期 |
+| 403 | 普通用户访问 ADMIN 管理接口 |
 | 409 | 幂等键冲突或同一订单请求仍在处理中 |
 | 404 | 商品、购物车明细或订单不存在 |
 | 500 | 服务器内部错误 |
@@ -153,11 +176,15 @@ Authorization: Bearer eyJ...
 
 | 场景 | 请求 | 预期 |
 |------|------|------|
-| 商品新增成功 | `POST /api/products/add`，合法 JSON | `code=200`，`message=新增商品成功` |
-| 商品新增参数错误 | `POST /api/products/add`，空名称、价格为 0、库存为 -1 | `code=400`，`data` 返回字段错误 |
-| 商品删除成功 | `DELETE /api/products/delete/{id}` | `code=200`，`message=删除商品成功` |
+| 登录成功 | `POST /api/auth/login`，用户名密码正确 | `code=200`，返回 `accessToken`、`refreshToken`、`role` |
+| 刷新令牌成功 | `POST /api/auth/refresh`，refresh token 有效 | `code=200`，轮换新的 `accessToken` 与 `refreshToken` |
+| 商品新增成功 | ADMIN token + `POST /api/products/add`，合法 JSON | `code=200`，`message=新增商品成功` |
+| 商品新增未登录 | `POST /api/products/add`，不带 token | `code=401` |
+| 商品新增无权限 | USER token + `POST /api/products/add`，合法 JSON | `code=403` |
+| 商品新增参数错误 | ADMIN token + `POST /api/products/add`，空名称、价格为 0、库存为 -1 | `code=400`，`data` 返回字段错误 |
+| 商品删除成功 | ADMIN token + `DELETE /api/products/delete/{id}` | `code=200`，`message=删除商品成功` |
 | 商品删除不存在 | `DELETE /api/products/delete/99999` | `code=404`，`message=商品不存在` |
-| 商品更新成功 | `PUT /api/products/update/{id}`，合法 JSON | `code=200`，返回更新后商品 |
+| 商品更新成功 | ADMIN token + `PUT /api/products/update/{id}`，合法 JSON | `code=200`，返回更新后商品 |
 | 商品更新不存在 | `PUT /api/products/update/99999` | `code=404`，`message=商品不存在` |
 | 商品分页查询 | `GET /api/products/query?page=1&pageSize=6` | `code=200`，返回 `data.items` 和 `page` |
 | 查询参数错误 | `GET /api/products/query?page=0` 或 `GET /api/products/not-number` | `code=400` |
@@ -175,6 +202,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v2.0 | 2026-06-15 | 登录响应扩展 access token、refresh token、过期时间和角色字段；新增 `/api/auth/refresh`；商品写接口改为 ADMIN 权限 | @dev |
 | v1.9 | 2026-06-15 | 将订单超时关闭说明更新为 RabbitMQ TTL/DLX 超时消息，并明确重复投递幂等 | @dev |
 | v1.8 | 2026-06-15 | 新增订单状态机说明、`PUT /api/orders/{id}/pay` 支付接口、`expireAt`/`paidAt` 响应字段和超时规则 | @dev |
 | v1.7 | 2026-06-15 | `POST /api/orders` 新增必填 `Idempotency-Key` 请求头和 409 幂等冲突说明 | @dev |

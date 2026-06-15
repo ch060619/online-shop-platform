@@ -1,5 +1,8 @@
 INSERT OR REPLACE INTO user (id, username, password, nickname, phone)
-VALUES (1, 'demo', 'demo123', '演示用户', '13800000000');
+VALUES (1, 'demo', '$2a$10$ZGvzjZgRBAenvPOumvffuOopNUvYqAccx3gkNdUICtvhwGE9LkZvG', '演示用户', '13800000000');
+
+INSERT OR REPLACE INTO user (id, username, password, nickname, phone)
+VALUES (2, 'admin', '$2a$10$9tNNghDxOoWjy2Lhpw4Ei.O.gMGAd1QbeWlYptRfSIATaEAgfGaCu', '管理员', '13900000000');
 
 INSERT OR REPLACE INTO product (id, name, category, price, stock, image_url, description)
 VALUES

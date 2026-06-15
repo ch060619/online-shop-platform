@@ -1,7 +1,9 @@
 package com.example.shop.interceptor;
 
+import com.example.shop.common.TokenClaims;
 import com.example.shop.common.TokenService;
 import com.example.shop.common.UserContext;
+import com.example.shop.common.UserRole;
 import com.example.shop.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,6 +18,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String PRODUCTS_PATH = "/api/products";
 
     private final TokenService tokenService;
 
@@ -45,7 +48,11 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             throw new BusinessException(401, "请先登录");
         }
-        UserContext.setCurrentUserId(tokenService.parseUserId(authorization.substring(BEARER_PREFIX.length())));
+        TokenClaims claims = tokenService.parseToken(authorization.substring(BEARER_PREFIX.length()));
+        if (requiresAdmin(request) && !UserRole.ADMIN.name().equals(claims.role())) {
+            throw new BusinessException(403, "无权访问管理端接口");
+        }
+        UserContext.setCurrentUser(claims.userId(), claims.role());
         return true;
     }
 
@@ -63,5 +70,12 @@ public class AuthInterceptor implements HandlerInterceptor {
                                 Object handler,
                                 Exception ex) {
         UserContext.clear();
+    }
+
+    private boolean requiresAdmin(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return uri.startsWith(PRODUCTS_PATH)
+                && !"GET".equalsIgnoreCase(request.getMethod())
+                && !"OPTIONS".equalsIgnoreCase(request.getMethod());
     }
 }

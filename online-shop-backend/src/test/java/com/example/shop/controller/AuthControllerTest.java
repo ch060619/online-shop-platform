@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.LoginRequest;
+import com.example.shop.domain.dto.RefreshTokenRequest;
 import com.example.shop.domain.vo.LoginVO;
 import com.example.shop.service.AuthService;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,9 @@ class AuthControllerTest {
                         .content("{\"username\":\"demo\",\"password\":\"demo123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("登录成功"))
-                .andExpect(jsonPath("$.data.token").value("token"));
+                .andExpect(jsonPath("$.data.accessToken").value("token"))
+                .andExpect(jsonPath("$.data.refreshToken").value("refresh-token"))
+                .andExpect(jsonPath("$.data.role").value("USER"));
     }
 
     @Test
@@ -53,9 +56,26 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value(400));
     }
 
+    @Test
+    void should_returnToken_when_refreshValid() throws Exception {
+        when(authService.refresh(ArgumentMatchers.any(RefreshTokenRequest.class))).thenReturn(loginVO());
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"refresh-token\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("刷新令牌成功"))
+                .andExpect(jsonPath("$.data.accessToken").value("token"));
+    }
+
     private LoginVO loginVO() {
         LoginVO vo = new LoginVO();
         vo.setToken("token");
+        vo.setAccessToken("token");
+        vo.setRefreshToken("refresh-token");
+        vo.setExpiresInSeconds(7200L);
+        vo.setTokenType("Bearer");
+        vo.setRole("USER");
         vo.setUserId(1L);
         vo.setUsername("demo");
         vo.setNickname("演示用户");

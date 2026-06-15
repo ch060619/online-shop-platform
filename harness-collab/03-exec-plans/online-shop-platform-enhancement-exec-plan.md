@@ -42,6 +42,9 @@
 | 2026-06-15 | `mvn "-Dtest=OrderServiceImplTest,OrderTimeoutMessageListenerTest,RabbitOrderTimeoutMessagePublisherTest,OrderIdempotencyConcurrencyTest,OrderTimeoutSchedulerTest" test` | 通过 | 不适用 | 不适用 | RabbitMQ 订单超时定向检查，29 个测试通过 |
 | 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 88.02% | 10.74% | RabbitMQ 订单超时全量门禁，104 个测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 88.02% | 10.74% | RabbitMQ 订单超时显式 JaCoCo 校验通过，方法覆盖率 70.67% |
+| 2026-06-15 | `mvn "-Dtest=AuthServiceImplTest,AuthControllerTest,TokenServiceTest,CommonSupportTest,ProductControllerTest,CartControllerTest,OrderControllerTest,RefreshTokenMapperTest" test` | 通过 | 不适用 | 不适用 | 鉴权安全定向检查，45 个测试通过 |
+| 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 83.26% | 10.62% | 鉴权安全全量门禁，114 个测试通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 83.26% | 10.62% | 鉴权安全显式 JaCoCo 校验通过，方法覆盖率 69.75% |
 
 ### 覆盖率趋势
 
@@ -52,6 +55,7 @@
 | 2026-06-15 订单幂等阶段 | 89.34% | 10.21% | 71.74% | — |
 | 2026-06-15 订单状态机阶段 | 89.17% | 10.95% | 72.03% | — |
 | 2026-06-15 RabbitMQ 订单超时阶段 | 88.02% | 10.74% | 70.67% | — |
+| 2026-06-15 鉴权安全阶段 | 83.26% | 10.62% | 69.75% | — |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 
@@ -66,7 +70,7 @@
 | Redis+Lua 幂等 | 幂等服务、Controller、并发测试 | Maven 全量 + 显式 JaCoCo | `feat: add redis lua order idempotency` |
 | 订单状态机 | 状态机、支付、超时扫描、重复执行测试 | Maven 全量 + 显式 JaCoCo | `feat: add order state machine` |
 | RabbitMQ 订单超时 | 延迟消息发布、消费、重复投递幂等测试 | Maven 全量 + 显式 JaCoCo | `feat: add rabbitmq order timeout` |
-| 鉴权安全 | BCrypt、刷新令牌、权限测试 | Maven 全量 + 显式 JaCoCo + 前端构建 | `feat: harden authentication and authorization` |
+| 鉴权安全 | BCrypt、刷新令牌、权限测试 | Maven 全量 + 显式 JaCoCo | `feat: harden authentication and authorization` |
 | 压测与 SQL | 脚本语法、EXPLAIN 记录、实测报告 | Maven 全量 + 压测命令记录 | `perf: add load tests and sql indexes` |
 | 部署与文档 | Compose 配置、Swagger、文档核对 | Maven 全量 + 前端构建 + Compose 校验 | `chore: add docker compose and api docs` |
 
@@ -84,6 +88,10 @@
 | 6 | 状态机 Mapper 测试暴露旧 SQLite 库缺少 `expire_at` 等新增列 | P2 | 2026-06-15 | 已解决 | 增加 `OrderSchemaInitializer` 做启动期增量补列和索引，Mapper 测试导入同一初始化器 | 2026-06-15 |
 | 7 | 状态机首次全量门禁发现 2 处严格 Checkstyle 行长违规 | P2 | 2026-06-15 | 已解决 | 拆分建索引 SQL 和 MyBatis `typeHandler` 注解长字符串 | 2026-06-15 |
 | 8 | RabbitMQ 发布失败可能在订单已提交后污染下单响应 | P2 | 2026-06-15 | 已解决 | 超时消息改为事务提交后发布，发布失败记录 warning 并依赖可关闭兜底扫描配置处理 | 2026-06-15 |
+| 9 | 商品写接口权限隔离后，Controller 测试仍使用旧 USER token 路径 | P2 | 2026-06-15 | 已解决 | 测试中补 ADMIN token，并新增 USER 写商品返回 403 的权限断言 | 2026-06-15 |
+| 10 | 旧 SQLite 本地库缺少 `user.role` 和 `refresh_token` 表，可能影响升级启动 | P2 | 2026-06-15 | 已解决 | 增加 `AuthSchemaInitializer` 做启动期补列、建表、索引和示例账号兼容初始化 | 2026-06-15 |
+| 11 | 鉴权阶段首次全量门禁发现 `UserRole` 枚举常量缺少 Javadoc | P2 | 2026-06-15 | 已解决 | 为 USER / ADMIN 枚举常量补充说明，满足严格 Checkstyle | 2026-06-15 |
+| 12 | 鉴权阶段 SpotBugs 发现 `AuthSchemaInitializer` 存在重复分支 | P2 | 2026-06-15 | 已解决 | 删除无效布尔分支，直接使用 `CURRENT_TIMESTAMP` 默认值 | 2026-06-15 |
 
 ---
 
@@ -98,6 +106,7 @@
 | 2026-06-15 订单幂等阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 订单状态机阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 通过 | 无 |
+| 2026-06-15 鉴权安全阶段 | `harness-new` | 0 | 通过 | 无 |
 
 ### SpotBugs 检查
 
@@ -108,6 +117,7 @@
 | 2026-06-15 订单幂等阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 订单状态机阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 0 | 通过 |
+| 2026-06-15 鉴权安全阶段 | `harness-new` | 0 | 0 | 通过 |
 
 ---
 
@@ -155,7 +165,7 @@
 - [x] Redis+Lua 幂等阶段已本地 commit
 - [x] 订单状态机阶段已本地 commit
 - [x] RabbitMQ 订单超时阶段已本地 commit
-- [ ] 鉴权安全阶段已本地 commit
+- [x] 鉴权安全阶段已本地 commit
 - [ ] 压测与 SQL 优化阶段已本地 commit
 - [ ] 部署与文档阶段已本地 commit
 
