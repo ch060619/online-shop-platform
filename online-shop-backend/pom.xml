@@ -28,6 +28,9 @@
         <sqlite.version>3.42.0.0</sqlite.version>
         <swagger.annotations.version>2.2.22</swagger.annotations.version>
         <lombok.version>1.18.32</lombok.version>
+        <jacoco.version>0.8.11</jacoco.version>
+        <surefireArgLine></surefireArgLine>
+        <jacoco.dataFile>C:/codex-jacoco/online-shop-backend.exec</jacoco.dataFile>
     </properties>
 
     <dependencies>
@@ -119,6 +122,52 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{surefireArgLine} -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <propertyName>surefireArgLine</propertyName>
+                            <destFile>${jacoco.dataFile}</destFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jacoco-check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${jacoco.dataFile}</dataFile>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -169,7 +218,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.8.11</version>
+                        <version>${jacoco.version}</version>
                         <executions>
                             <execution>
                                 <id>jacoco-prepare-agent</id>
@@ -177,6 +226,10 @@
                                 <goals>
                                     <goal>prepare-agent</goal>
                                 </goals>
+                                <configuration>
+                                    <propertyName>surefireArgLine</propertyName>
+                                    <destFile>${jacoco.dataFile}</destFile>
+                                </configuration>
                             </execution>
                             <execution>
                                 <id>jacoco-report</id>
@@ -192,6 +245,7 @@
                                     <goal>check</goal>
                                 </goals>
                                 <configuration>
+                                    <dataFile>${jacoco.dataFile}</dataFile>
                                     <rules>
                                         <rule>
                                             <element>BUNDLE</element>
