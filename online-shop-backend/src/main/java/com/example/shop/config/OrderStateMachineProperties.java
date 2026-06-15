@@ -13,6 +13,12 @@ import org.springframework.stereotype.Component;
 public class OrderStateMachineProperties {
 
     private long paymentTimeoutMinutes = 30;
+    private boolean timeoutScanEnabled;
     private long timeoutScanFixedDelayMillis = 60_000;
     private int timeoutScanBatchSize = 100;
+    private String rabbitTimeoutExchange = "shop.order.timeout.exchange";
+    private String rabbitTimeoutDelayQueue = "shop.order.timeout.delay.queue";
+    private String rabbitTimeoutQueue = "shop.order.timeout.queue";
+    private String rabbitTimeoutDelayRoutingKey = "shop.order.timeout.delay";
+    private String rabbitTimeoutRoutingKey = "shop.order.timeout";
 }

@@ -19,6 +19,7 @@ import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.ProductMapper;
 import com.example.shop.service.OrderIdempotencyService;
 import com.example.shop.service.OrderService;
+import com.example.shop.service.OrderTimeoutMessagePublisher;
 import com.example.shop.service.idempotency.OrderIdempotencyAction;
 import com.example.shop.service.idempotency.OrderIdempotencyDecision;
 import java.math.BigDecimal;
@@ -27,8 +28,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 订单服务实现。
@@ -37,12 +42,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderServiceImpl implements OrderService {
 
     private static final DateTimeFormatter ORDER_NO_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
     private final CartItemMapper cartItemMapper;
     private final ProductMapper productMapper;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final OrderIdempotencyService orderIdempotencyService;
     private final OrderStateMachineProperties stateMachineProperties;
+    private final OrderTimeoutMessagePublisher orderTimeoutMessagePublisher;
 
     /**
      * 创建订单服务实现。
@@ -53,19 +60,22 @@ public class OrderServiceImpl implements OrderService {
      * @param orderItemMapper 订单明细 Mapper
      * @param orderIdempotencyService 订单幂等服务
      * @param stateMachineProperties 订单状态机配置
+     * @param orderTimeoutMessagePublisher 订单超时消息发布器
      */
     public OrderServiceImpl(CartItemMapper cartItemMapper,
                             ProductMapper productMapper,
                             OrderMapper orderMapper,
                             OrderItemMapper orderItemMapper,
                             OrderIdempotencyService orderIdempotencyService,
-                            OrderStateMachineProperties stateMachineProperties) {
+                            OrderStateMachineProperties stateMachineProperties,
+                            OrderTimeoutMessagePublisher orderTimeoutMessagePublisher) {
         this.cartItemMapper = cartItemMapper;
         this.productMapper = productMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.orderIdempotencyService = orderIdempotencyService;
         this.stateMachineProperties = stateMachineProperties;
+        this.orderTimeoutMessagePublisher = orderTimeoutMessagePublisher;
     }
 
     /**
@@ -149,7 +159,9 @@ public class OrderServiceImpl implements OrderService {
             orderItemMapper.insert(toOrderItem(order.getId(), cartItem));
         }
         cartItemMapper.deleteByUserId(userId);
-        return getOrder(order.getId());
+        OrderVO createdOrder = getOrder(order.getId());
+        publishTimeoutMessageAfterCommit(order.getId(), order.getExpireAt());
+        return createdOrder;
     }
 
     /**
@@ -336,6 +348,29 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(404, "订单不存在");
         }
         return order;
+    }
+
+    private void publishTimeoutMessageAfterCommit(Long orderId, LocalDateTime expireAt) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            safePublishTimeoutMessage(orderId, expireAt);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                safePublishTimeoutMessage(orderId, expireAt);
+            }
+        });
+    }
+
+    private void safePublishTimeoutMessage(Long orderId, LocalDateTime expireAt) {
+        try {
+            orderTimeoutMessagePublisher.publishTimeoutMessage(orderId, expireAt);
+        }
+        catch (RuntimeException exception) {
+            log.warn("订单超时消息发布失败，后续将依赖兜底扫描处理: orderId={}, reason={}",
+                    orderId, exception.getMessage());
+        }
     }
 
     private OrderSummaryVO toOrderSummaryVO(Order order) {

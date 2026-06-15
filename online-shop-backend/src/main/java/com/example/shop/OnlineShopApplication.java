@@ -1,5 +1,6 @@
 package com.example.shop;
 
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -8,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 电商购物平台后端启动类。
  */
 @SpringBootApplication
+@EnableRabbit
 @EnableScheduling
 public class OnlineShopApplication {
 

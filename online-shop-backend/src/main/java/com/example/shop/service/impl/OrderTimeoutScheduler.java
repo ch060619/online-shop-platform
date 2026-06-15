@@ -2,6 +2,7 @@ package com.example.shop.service.impl;
 
 import com.example.shop.config.OrderStateMachineProperties;
 import com.example.shop.service.OrderService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
  * 超时订单定时扫描器。
  */
 @Component
+@ConditionalOnProperty(prefix = "shop.order", name = "timeout-scan-enabled", havingValue = "true")
 public class OrderTimeoutScheduler {
 
     private final OrderService orderService;

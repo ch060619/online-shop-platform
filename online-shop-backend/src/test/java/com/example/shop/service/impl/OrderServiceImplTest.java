@@ -1,10 +1,12 @@
 package com.example.shop.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,10 +25,12 @@ import com.example.shop.repository.mapper.OrderItemMapper;
 import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.ProductMapper;
 import com.example.shop.service.OrderIdempotencyService;
+import com.example.shop.service.OrderTimeoutMessagePublisher;
 import com.example.shop.service.idempotency.OrderIdempotencyDecision;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +38,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * OrderServiceImpl 单元测试。
@@ -56,6 +62,9 @@ class OrderServiceImplTest {
     @Mock
     private OrderIdempotencyService orderIdempotencyService;
 
+    @Mock
+    private OrderTimeoutMessagePublisher orderTimeoutMessagePublisher;
+
     private OrderServiceImpl orderService;
 
     @BeforeEach
@@ -67,7 +76,8 @@ class OrderServiceImplTest {
                 orderMapper,
                 orderItemMapper,
                 orderIdempotencyService,
-                stateMachineProperties());
+                stateMachineProperties(),
+                orderTimeoutMessagePublisher);
     }
 
     @AfterEach
@@ -92,6 +102,52 @@ class OrderServiceImplTest {
         assertThat(orderService.createOrder(createRequest()).getTotalAmount()).isEqualByComparingTo("20.00");
         assertThat(orderCaptor.getValue().getCreatedAt()).isBetween(beforeCreate, LocalDateTime.now());
         verify(cartItemMapper).deleteByUserId(1L);
+        verify(orderTimeoutMessagePublisher).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void should_publishTimeoutMessageAfterCommit_when_transactionSynchronizationActive() {
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+            when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
+            when(orderMapper.insert(any(Order.class))).thenAnswer(invocation -> {
+                Order order = invocation.getArgument(0);
+                order.setId(10L);
+                return 1;
+            });
+            when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+            when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+            orderService.createOrder(createRequest());
+            verify(orderTimeoutMessagePublisher, never()).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
+
+            List<TransactionSynchronization> synchronizations =
+                    TransactionSynchronizationManager.getSynchronizations();
+            synchronizations.forEach(TransactionSynchronization::afterCommit);
+            verify(orderTimeoutMessagePublisher).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
+        }
+        finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void should_keepOrderCreated_when_timeoutMessagePublishFails() {
+        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+        when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
+        when(orderMapper.insert(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(10L);
+            return 1;
+        });
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+        doThrow(new IllegalStateException("rabbit down"))
+                .when(orderTimeoutMessagePublisher).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
+
+        assertThatCode(() -> orderService.createOrder(createRequest())).doesNotThrowAnyException();
+        verify(cartItemMapper).deleteByUserId(1L);
     }
 
     @Test
@@ -112,6 +168,7 @@ class OrderServiceImplTest {
 
         assertThat(orderService.createOrder(createRequest(), "order-key-1").getId()).isEqualTo(10L);
         verify(orderIdempotencyService).markSuccess(1L, "order-key-1", "hash-1", 10L);
+        verify(orderTimeoutMessagePublisher).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
         verify(productMapper).decreaseStock(1L, 2);
     }
 
@@ -126,6 +183,7 @@ class OrderServiceImplTest {
         assertThat(orderService.createOrder(createRequest(), "order-key-1").getOrderNo()).isEqualTo("NO1");
         verify(productMapper, never()).decreaseStock(1L, 2);
         verify(orderMapper, never()).insert(any(Order.class));
+        verify(orderTimeoutMessagePublisher, never()).publishTimeoutMessage(any(Long.class), any(LocalDateTime.class));
     }
 
     @Test
@@ -286,6 +344,21 @@ class OrderServiceImplTest {
 
         assertThat(orderService.timeoutOrder(10L)).isFalse();
         verify(productMapper, never()).increaseStock(1L, 2);
+    }
+
+    @Test
+    void should_restoreStockOnce_when_timeoutMessageDeliveredRepeatedly() {
+        when(orderMapper.findById(10L)).thenReturn(expiredOrder(OrderStatus.CREATED.name()));
+        when(orderMapper.updateStatusByIdWhen(
+                eq(10L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.TIMEOUT.name()),
+                any(LocalDateTime.class))).thenReturn(1, 0);
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.timeoutOrder(10L)).isTrue();
+        assertThat(orderService.timeoutOrder(10L)).isFalse();
+        verify(productMapper).increaseStock(1L, 2);
     }
 
     @Test

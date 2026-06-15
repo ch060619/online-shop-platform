@@ -14,7 +14,7 @@
 1. 文档门禁阶段：补增强需求、设计、执行计划和 `func.md`，创建本地分支并提交 `docs: add enhancement spec and design`。
 2. Redis 商品缓存阶段：实现商品列表/详情 Cache-Aside、空值缓存、TTL 随机化、热点预热和命中率指标。
 3. Redis+Lua 订单幂等阶段：`POST /api/orders` 增加 `Idempotency-Key`，Lua 原子处理 `PROCESSING / SUCCESS / FAILED`。
-4. 定时任务订单超时与状态机阶段：扩展 `CREATED / PAID / CANCELLED / TIMEOUT`，新增支付接口和超时扫描处理。
+4. RabbitMQ 订单超时与状态机阶段：扩展 `CREATED / PAID / CANCELLED / TIMEOUT`，新增支付接口和 TTL/DLX 延迟消息超时处理。
 5. 鉴权安全阶段：BCrypt、access token、refresh token、USER/ADMIN 权限隔离。
 6. 压测与 SQL 优化阶段：补 JMeter/Gatling 脚本、EXPLAIN 记录和实测指标。
 7. 部署与文档阶段：补 Dockerfile、Docker Compose、`application-docker.yml`、SpringDoc/OpenAPI、错误码和核心流程图。
@@ -39,6 +39,9 @@
 | 2026-06-15 | `mvn "-Dtest=OrderServiceImplTest,OrderControllerTest,OrderMapperTest,OrderTimeoutSchedulerTest,OrderIdempotencyConcurrencyTest" test` | 通过 | 不适用 | 不适用 | 订单状态机定向检查，37 个测试通过 |
 | 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 89.17% | 10.95% | 订单状态机全量门禁，99 个测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 89.17% | 10.95% | 订单状态机显式 JaCoCo 校验通过，方法覆盖率 72.03% |
+| 2026-06-15 | `mvn "-Dtest=OrderServiceImplTest,OrderTimeoutMessageListenerTest,RabbitOrderTimeoutMessagePublisherTest,OrderIdempotencyConcurrencyTest,OrderTimeoutSchedulerTest" test` | 通过 | 不适用 | 不适用 | RabbitMQ 订单超时定向检查，29 个测试通过 |
+| 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 88.02% | 10.74% | RabbitMQ 订单超时全量门禁，104 个测试通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 88.02% | 10.74% | RabbitMQ 订单超时显式 JaCoCo 校验通过，方法覆盖率 70.67% |
 
 ### 覆盖率趋势
 
@@ -48,6 +51,7 @@
 | 2026-06-15 Redis 商品缓存阶段 | 89.39% | 9.22% | 71.11% | — |
 | 2026-06-15 订单幂等阶段 | 89.34% | 10.21% | 71.74% | — |
 | 2026-06-15 订单状态机阶段 | 89.17% | 10.95% | 72.03% | — |
+| 2026-06-15 RabbitMQ 订单超时阶段 | 88.02% | 10.74% | 70.67% | — |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 
@@ -61,6 +65,7 @@
 | Redis 商品缓存 | 缓存组件和 ProductService 定向测试 | Maven 全量 + 显式 JaCoCo | `feat: add redis product cache` |
 | Redis+Lua 幂等 | 幂等服务、Controller、并发测试 | Maven 全量 + 显式 JaCoCo | `feat: add redis lua order idempotency` |
 | 订单状态机 | 状态机、支付、超时扫描、重复执行测试 | Maven 全量 + 显式 JaCoCo | `feat: add order state machine` |
+| RabbitMQ 订单超时 | 延迟消息发布、消费、重复投递幂等测试 | Maven 全量 + 显式 JaCoCo | `feat: add rabbitmq order timeout` |
 | 鉴权安全 | BCrypt、刷新令牌、权限测试 | Maven 全量 + 显式 JaCoCo + 前端构建 | `feat: harden authentication and authorization` |
 | 压测与 SQL | 脚本语法、EXPLAIN 记录、实测报告 | Maven 全量 + 压测命令记录 | `perf: add load tests and sql indexes` |
 | 部署与文档 | Compose 配置、Swagger、文档核对 | Maven 全量 + 前端构建 + Compose 校验 | `chore: add docker compose and api docs` |
@@ -78,6 +83,7 @@
 | 5 | 订单幂等测试泛型 matcher 导致 Mockito `thenReturn` 编译失败 | P2 | 2026-06-15 | 已解决 | 将 RedisScript matcher 拆为 `RedisScript<List>` 和 `RedisScript<Long>` 两个强类型 helper | 2026-06-15 |
 | 6 | 状态机 Mapper 测试暴露旧 SQLite 库缺少 `expire_at` 等新增列 | P2 | 2026-06-15 | 已解决 | 增加 `OrderSchemaInitializer` 做启动期增量补列和索引，Mapper 测试导入同一初始化器 | 2026-06-15 |
 | 7 | 状态机首次全量门禁发现 2 处严格 Checkstyle 行长违规 | P2 | 2026-06-15 | 已解决 | 拆分建索引 SQL 和 MyBatis `typeHandler` 注解长字符串 | 2026-06-15 |
+| 8 | RabbitMQ 发布失败可能在订单已提交后污染下单响应 | P2 | 2026-06-15 | 已解决 | 超时消息改为事务提交后发布，发布失败记录 warning 并依赖可关闭兜底扫描配置处理 | 2026-06-15 |
 
 ---
 
@@ -91,6 +97,7 @@
 | 2026-06-15 Redis 商品缓存阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 订单幂等阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 订单状态机阶段 | `harness-new` | 0 | 通过 | 无 |
+| 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 通过 | 无 |
 
 ### SpotBugs 检查
 
@@ -100,6 +107,7 @@
 | 2026-06-15 Redis 商品缓存阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 订单幂等阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 订单状态机阶段 | `harness-new` | 0 | 0 | 通过 |
+| 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 0 | 通过 |
 
 ---
 
@@ -146,6 +154,7 @@
 - [x] Redis 商品缓存阶段已本地 commit
 - [x] Redis+Lua 幂等阶段已本地 commit
 - [x] 订单状态机阶段已本地 commit
+- [x] RabbitMQ 订单超时阶段已本地 commit
 - [ ] 鉴权安全阶段已本地 commit
 - [ ] 压测与 SQL 优化阶段已本地 commit
 - [ ] 部署与文档阶段已本地 commit

@@ -19,6 +19,7 @@ import com.example.shop.repository.mapper.OrderItemMapper;
 import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.ProductMapper;
 import com.example.shop.service.OrderIdempotencyService;
+import com.example.shop.service.OrderTimeoutMessagePublisher;
 import com.example.shop.service.idempotency.OrderIdempotencyDecision;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -58,6 +59,9 @@ class OrderIdempotencyConcurrencyTest {
     @Mock
     private OrderIdempotencyService orderIdempotencyService;
 
+    @Mock
+    private OrderTimeoutMessagePublisher orderTimeoutMessagePublisher;
+
     private OrderServiceImpl orderService;
 
     @BeforeEach
@@ -69,7 +73,8 @@ class OrderIdempotencyConcurrencyTest {
                 orderMapper,
                 orderItemMapper,
                 orderIdempotencyService,
-                stateMachineProperties());
+                stateMachineProperties(),
+                orderTimeoutMessagePublisher);
     }
 
     @AfterEach

@@ -18,6 +18,11 @@ spring:
       host: localhost
       port: 6379
       timeout: 2s
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 
 mybatis-plus:
   configuration:
@@ -43,5 +48,11 @@ shop:
       success-ttl-seconds: 86400
   order:
     payment-timeout-minutes: 30
+    timeout-scan-enabled: false
     timeout-scan-fixed-delay-millis: 60000
     timeout-scan-batch-size: 100
+    rabbit-timeout-exchange: shop.order.timeout.exchange
+    rabbit-timeout-delay-queue: shop.order.timeout.delay.queue
+    rabbit-timeout-queue: shop.order.timeout.queue
+    rabbit-timeout-delay-routing-key: shop.order.timeout.delay
+    rabbit-timeout-routing-key: shop.order.timeout

@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.8
+**文档版本**：v1.9
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-15  
 **负责人**：@dev
@@ -133,8 +133,8 @@ Authorization: Bearer eyJ...
 
 - `CREATED -> PAID`：调用 `PUT /api/orders/{id}/pay` 模拟支付成功，记录 `paidAt`。
 - `CREATED -> CANCELLED`：调用 `PUT /api/orders/{id}/cancel` 取消订单，并回补库存。
-- `CREATED -> TIMEOUT`：订单超过 `expireAt` 后由定时任务扫描关闭，并回补库存。
-- 支付、取消、超时都使用条件状态更新；重复扫描或并发竞争时不会重复回补库存。
+- `CREATED -> TIMEOUT`：订单超过 `expireAt` 后由 RabbitMQ TTL/DLX 超时消息关闭，并回补库存。
+- 支付、取消、超时都使用条件状态更新；RabbitMQ 重复投递、兜底扫描或并发竞争时不会重复回补库存。
 
 ---
 
@@ -167,7 +167,7 @@ Authorization: Bearer eyJ...
 | 订单重复提交 | 使用相同 `Idempotency-Key` 和相同请求体重试 `POST /api/orders` | `code=200`，返回同一订单 |
 | 订单幂等冲突 | 使用相同 `Idempotency-Key` 和不同请求体重试 `POST /api/orders` | `code=409` |
 | 订单支付成功 | `PUT /api/orders/{id}/pay`，订单为 `CREATED` 且未过期 | `code=200`，订单状态变为 `PAID` |
-| 订单超时关闭 | 超时定时任务扫描到 `expireAt <= now` 的 `CREATED` 订单 | 订单状态变为 `TIMEOUT`，库存只回补一次 |
+| 订单超时关闭 | RabbitMQ 超时消息投递到 `expireAt <= now` 的 `CREATED` 订单 | 订单状态变为 `TIMEOUT`，库存只回补一次 |
 
 ---
 
@@ -175,6 +175,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.9 | 2026-06-15 | 将订单超时关闭说明更新为 RabbitMQ TTL/DLX 超时消息，并明确重复投递幂等 | @dev |
 | v1.8 | 2026-06-15 | 新增订单状态机说明、`PUT /api/orders/{id}/pay` 支付接口、`expireAt`/`paidAt` 响应字段和超时规则 | @dev |
 | v1.7 | 2026-06-15 | `POST /api/orders` 新增必填 `Idempotency-Key` 请求头和 409 幂等冲突说明 | @dev |
 | v1.6 | 2026-06-10 | 明确订单 `createdAt` 的 SQLite 兼容持久化格式和历史 ISO 格式读回兼容策略 | @dev |
