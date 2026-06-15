@@ -2,18 +2,27 @@
 
 一个前后端分离的在线商城示例项目。后端使用 Spring Boot、MyBatis Plus 和 SQLite/MySQL，前端使用 Vue 3、Vite、Element Plus 和 Axios，实现商品浏览、分页筛选、购物车、下单、订单查询与取消等核心购物流程。
 
+## V2.0 发布要点
+
+- 认证增强：登录响应新增 `accessToken`、`refreshToken`、过期时间和用户角色，支持刷新令牌轮换。
+- 权限控制：商品写接口仅允许 ADMIN 角色访问，购物车和订单接口要求 USER 或 ADMIN 登录。
+- 订单增强：订单提交支持 `Idempotency-Key` 幂等键，新增状态机、支付、更新、删除和超时关闭流程。
+- 缓存与消息：商品查询接入 Redis 缓存并提供缓存指标接口；订单超时关闭接入 RabbitMQ TTL/DLX。
+- 部署支持：新增 Dockerfile、`docker-compose.yml`、Docker profile、OpenAPI/Swagger UI 和压测脚本。
+
 ## 主要功能
 
 - 商品列表：支持按商品名称、分类、价格区间分页查询商品，每次切换页码或筛选条件都会发起接口请求，统一响应包含分页元信息。
+- 商品缓存：商品列表和详情查询支持 Redis 缓存，提供缓存命中率指标接口。
 - 商品维护：后端提供商品新增、删除、更新和查询基础接口，覆盖正常参数、异常参数和商品不存在场景。
 - 商品详情：查看商品价格、库存、描述等信息，并展示父组件传入子组件的促销标签和限时倒计时。
-- 用户登录：演示账号登录后获取 Bearer Token，购物车和订单接口基于 token 识别当前用户。
+- 用户登录：演示账号登录后获取 Bearer Token 与刷新令牌，购物车和订单接口基于 token 识别当前用户。
 - 购物车：通过 Pinia 维护全局购物车状态，支持加入商品、修改数量、删除商品、清空购物车和实时计算总价。
-- 订单管理：从购物车提交订单，订单创建时间由后端应用使用系统时间写入，并以 SQLite/MySQL 可读的时间格式持久化；下单成功后跳转成功页，可继续查看订单列表和订单详情，取消订单并回补库存。
+- 订单管理：从购物车幂等提交订单，订单创建时间由后端应用使用系统时间写入，并以 SQLite/MySQL 可读的时间格式持久化；下单成功后跳转成功页，可继续查看订单列表和订单详情，支持支付、更新、取消、删除和超时关闭。
 - 路由兜底：前端提供 404 页面，未知地址会跳转到友好的页面不存在提示。
 - 全局异常：后端统一处理参数错误、业务异常、接口不存在和未预期异常，所有接口保持统一 JSON 结构。
 - 前后端联调：Vite 代理 `/api` 到后端服务，开发时无需单独处理跨域。
-- 一键启动：根目录 `start.bat` 会启动前后端服务，并自动打开前端首页和后端商品接口。
+- 一键启动：根目录 `start.bat` 支持本地开发模式和 Docker 模式，并自动打开前端首页和后端商品接口。
 
 ## 技术栈
 
@@ -27,6 +36,8 @@
 - Apache Shiro Jakarta
 - Druid
 - SQLite JDBC / MySQL Connector
+- Redis
+- RabbitMQ
 - SpringDoc OpenAPI
 - JUnit、JaCoCo、Checkstyle、SpotBugs
 
@@ -58,6 +69,7 @@
 │       ├── application.yml           # 默认配置
 │       ├── application-sqlite.yml    # SQLite 数据源配置
 │       ├── application-mysql.yml     # MySQL 数据源配置
+│       ├── application-docker.yml    # Docker Compose 部署配置
 │       ├── schema-sqlite.sql         # SQLite 表结构
 │       └── data-sqlite.sql           # SQLite 初始化数据
 │   └── Dockerfile                    # 后端容器镜像构建
@@ -91,8 +103,10 @@
 | 模块 | 方法 | 路径 | 说明 |
 |------|------|------|------|
 | 认证 | `POST` | `/api/auth/login` | 用户登录，返回 Bearer Token |
+| 认证 | `POST` | `/api/auth/refresh` | 使用刷新令牌轮换新的访问令牌 |
 | 商品 | `GET` | `/api/products` | 分页查询商品列表，支持名称、分类、价格区间筛选 |
 | 商品 | `GET` | `/api/products/{id}` | 查询商品详情 |
+| 商品 | `GET` | `/api/products/cache/metrics` | 查询商品缓存命中率指标 |
 | 商品 | `POST` | `/api/products/add` | 新增商品 |
 | 商品 | `DELETE` | `/api/products/delete/{id}` | 删除商品 |
 | 商品 | `PUT` | `/api/products/update/{id}` | 更新商品 |
@@ -104,7 +118,10 @@
 | 订单 | `POST` | `/api/orders` | 提交订单 |
 | 订单 | `GET` | `/api/orders` | 查询订单列表 |
 | 订单 | `GET` | `/api/orders/{id}` | 查询订单详情 |
+| 订单 | `PUT` | `/api/orders/{id}` | 更新订单收货信息 |
+| 订单 | `PUT` | `/api/orders/{id}/pay` | 模拟支付订单 |
 | 订单 | `PUT` | `/api/orders/{id}/cancel` | 取消订单 |
+| 订单 | `DELETE` | `/api/orders/{id}` | 删除已取消订单 |
 
 OpenAPI 文档：
 
@@ -113,7 +130,7 @@ OpenAPI 文档：
 | OpenAPI JSON | `/v3/api-docs` |
 | Swagger UI | `/swagger-ui.html` |
 
-购物车和订单接口需要在请求头中携带：
+商品新增、更新、删除接口需要 ADMIN 角色；购物车和订单接口需要 USER 或 ADMIN 角色。受保护接口需要在请求头中携带：
 
 ```http
 Authorization: Bearer <token>
@@ -124,6 +141,11 @@ Authorization: Bearer <token>
 ```text
 用户名：demo
 密码：demo123
+角色：USER
+
+用户名：admin
+密码：admin123
+角色：ADMIN
 ```
 
 商品列表接口常用查询参数：
@@ -199,12 +221,24 @@ Authorization: Bearer <token>
 
 脚本会：
 
+- 使用 SQLite 启动本地后端。
+- 尝试通过 Docker 启动 Redis 和 RabbitMQ；如果未安装 Docker，请先自行启动本地 Redis `6379` 和 RabbitMQ `5672`。
 - 关闭旧的前后端启动窗口。
 - 清理 `8080` 和 `5173` 端口上的旧进程。
 - 启动后端：`http://localhost:8080`
 - 启动前端：`http://localhost:5173`
 - 自动打开后端商品接口：`http://localhost:8080/api/products`
 - 自动打开前端页面：`http://localhost:5173`
+
+### Docker 模式启动
+
+在项目根目录执行：
+
+```powershell
+.\start.bat docker
+```
+
+脚本会通过 `docker compose up --build -d` 启动 MySQL、Redis、RabbitMQ 和后端服务，然后启动前端开发服务。RabbitMQ 管理台地址为 `http://localhost:15672`，默认账号密码为 `guest` / `guest`。
 
 ### 手动启动后端
 
@@ -213,7 +247,7 @@ cd online-shop-backend
 mvn spring-boot:run -Dspring-boot.run.profiles=sqlite
 ```
 
-默认端口为 `8080`。SQLite 会使用项目本地数据库文件，初始化脚本位于 `src/main/resources/schema-sqlite.sql` 和 `src/main/resources/data-sqlite.sql`。
+默认端口为 `8080`。SQLite 会使用项目本地数据库文件，初始化脚本位于 `src/main/resources/schema-sqlite.sql` 和 `src/main/resources/data-sqlite.sql`。V2.0 本地模式还需要 Redis `6379` 和 RabbitMQ `5672`。
 
 如需使用 MySQL：
 

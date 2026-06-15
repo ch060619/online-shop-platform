@@ -4,21 +4,35 @@ setlocal EnableExtensions
 set "ROOT=%~dp0"
 set "BACKEND_DIR=%ROOT%online-shop-backend"
 set "FRONTEND_DIR=%ROOT%online-shop-frontend"
+set "MODE=%~1"
+if "%MODE%"=="" set "MODE=local"
 set "BACKEND_PORT=8080"
 set "FRONTEND_PORT=5173"
 set "BACKEND_URL=http://localhost:%BACKEND_PORT%/api/products"
 set "FRONTEND_URL=http://localhost:%FRONTEND_PORT%"
 
 echo ========================================
-echo Online Shop Platform Startup
+echo Online Shop Platform V2.0 Startup
 echo Root: %ROOT%
-echo Database profile: sqlite
+echo Mode: %MODE%
 echo ========================================
 
 call :kill_window "online-shop-backend"
 call :kill_window "online-shop-frontend"
 call :kill_port %BACKEND_PORT%
 call :kill_port %FRONTEND_PORT%
+
+if /I "%MODE%"=="docker" goto docker_mode
+if /I not "%MODE%"=="local" (
+    echo Unknown mode "%MODE%". Use "local" or "docker".
+    exit /b 1
+)
+
+echo.
+echo Preparing V2.0 infrastructure dependencies...
+call :start_infra
+call :wait_port 6379 "redis"
+call :wait_port 5672 "rabbitmq"
 
 echo.
 echo Starting backend on port %BACKEND_PORT%...
@@ -46,6 +60,49 @@ start "" "%FRONTEND_URL%"
 
 echo.
 echo Done.
+exit /b 0
+
+:docker_mode
+echo.
+echo Starting Docker Compose services: MySQL, Redis, RabbitMQ, backend...
+docker compose up --build -d
+if errorlevel 1 (
+    echo Docker Compose startup failed.
+    exit /b 1
+)
+
+echo Starting frontend on port %FRONTEND_PORT%...
+start "online-shop-frontend" /D "%FRONTEND_DIR%" cmd /k npm run dev -- --host 0.0.0.0 --port %FRONTEND_PORT%
+
+echo.
+echo Startup commands have been sent.
+echo Backend API: %BACKEND_URL%
+echo Frontend:    %FRONTEND_URL%
+echo RabbitMQ UI: http://localhost:15672
+echo.
+echo Waiting for services to bind ports...
+call :wait_port %BACKEND_PORT% "backend"
+call :wait_port %FRONTEND_PORT% "frontend"
+
+call :show_port %BACKEND_PORT%
+call :show_port %FRONTEND_PORT%
+
+echo.
+echo Opening browser...
+start "" "%BACKEND_URL%"
+start "" "%FRONTEND_URL%"
+exit /b 0
+
+:start_infra
+where docker > nul 2>&1
+if errorlevel 1 (
+    echo Docker was not found. Redis and RabbitMQ must be running on localhost for all V2.0 flows.
+    exit /b 0
+)
+docker compose up -d redis rabbitmq
+if errorlevel 1 (
+    echo Could not start Redis/RabbitMQ with Docker. Continuing with local app startup.
+)
 exit /b 0
 
 :kill_window
