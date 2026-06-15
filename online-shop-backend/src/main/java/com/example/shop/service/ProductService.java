@@ -4,6 +4,7 @@ import com.example.shop.domain.dto.ProductSearchRequest;
 import com.example.shop.domain.dto.ProductSaveRequest;
 import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
+import com.example.shop.service.cache.ProductCacheMetrics;
 
 /**
  * 商品服务接口。
@@ -49,4 +50,11 @@ public interface ProductService {
      * @param id 商品 ID
      */
     void delete(Long id);
+
+    /**
+     * 获取商品缓存指标快照。
+     *
+     * @return 商品缓存指标
+     */
+    ProductCacheMetrics cacheMetrics();
 }

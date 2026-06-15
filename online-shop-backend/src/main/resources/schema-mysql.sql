@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS `product` (
     `image_url` VARCHAR(255),
     `description` TEXT,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    KEY `idx_product_category_id` (`category`, `id`),
+    KEY `idx_product_category_price_id` (`category`, `price`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `cart_item` (
@@ -41,7 +43,8 @@ CREATE TABLE IF NOT EXISTS `cart_item` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_cart_user_product` (`user_id`, `product_id`)
+    UNIQUE KEY `uk_cart_user_product` (`user_id`, `product_id`),
+    KEY `idx_cart_item_user_id_id` (`user_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `orders` (
@@ -58,6 +61,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
+    KEY `idx_orders_user_id_id` (`user_id`, `id`),
     KEY `idx_orders_status_expire_at` (`status`, `expire_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -70,5 +74,6 @@ CREATE TABLE IF NOT EXISTS `order_item` (
     `price` DECIMAL(10,2) NOT NULL,
     `quantity` INT NOT NULL,
     `subtotal` DECIMAL(10,2) NOT NULL,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    KEY `idx_order_item_order_id_id` (`order_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

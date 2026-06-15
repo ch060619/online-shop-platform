@@ -11,6 +11,7 @@ import com.example.shop.repository.mapper.ProductMapper;
 import com.example.shop.service.ProductCacheLookup;
 import com.example.shop.service.ProductCacheService;
 import com.example.shop.service.ProductService;
+import com.example.shop.service.cache.ProductCacheMetrics;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -151,6 +152,16 @@ public class ProductServiceImpl implements ProductService {
         ensureProductExists(id);
         productMapper.deleteById(id);
         invalidateProductCache(id);
+    }
+
+    /**
+     * 获取商品缓存指标快照。
+     *
+     * @return 商品缓存指标
+     */
+    @Override
+    public ProductCacheMetrics cacheMetrics() {
+        return productCacheService.metrics();
     }
 
     /**

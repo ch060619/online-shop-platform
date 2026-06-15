@@ -18,6 +18,7 @@ import com.example.shop.exception.BusinessException;
 import com.example.shop.repository.mapper.ProductMapper;
 import com.example.shop.service.ProductCacheLookup;
 import com.example.shop.service.ProductCacheService;
+import com.example.shop.service.cache.ProductCacheMetrics;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -206,6 +207,14 @@ class ProductServiceImplTest {
 
         verify(productCacheService).putProduct(1L, productVO());
         verify(productCacheService).putNullProduct(99L);
+    }
+
+    @Test
+    void should_returnCacheMetrics_when_metricsRequested() {
+        ProductCacheMetrics metrics = new ProductCacheMetrics(3, 1, 4, 2);
+        when(productCacheService.metrics()).thenReturn(metrics);
+
+        assertThat(productService.cacheMetrics()).isEqualTo(metrics);
     }
 
     private Product product() {

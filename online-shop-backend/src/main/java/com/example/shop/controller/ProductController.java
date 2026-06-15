@@ -5,6 +5,7 @@ import com.example.shop.common.PageMeta;
 import com.example.shop.domain.dto.ProductSearchRequest;
 import com.example.shop.domain.dto.ProductSaveRequest;
 import com.example.shop.domain.vo.PageVO;
+import com.example.shop.domain.vo.ProductCacheMetricsVO;
 import com.example.shop.domain.vo.ProductVO;
 import com.example.shop.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,6 +62,17 @@ public class ProductController {
     @Operation(summary = "查询商品详情", description = "根据商品 ID 查询商品详细信息")
     public ApiResponse<ProductVO> getProduct(@PathVariable Long id) {
         return ApiResponse.success(productService.getById(id));
+    }
+
+    /**
+     * 查询商品缓存指标。
+     *
+     * @return 商品缓存指标响应
+     */
+    @GetMapping("/cache/metrics")
+    @Operation(summary = "查询商品缓存指标", description = "返回商品列表和详情缓存的命中次数、未命中次数和命中率")
+    public ApiResponse<ProductCacheMetricsVO> getCacheMetrics() {
+        return ApiResponse.success(ProductCacheMetricsVO.from(productService.cacheMetrics()));
     }
 
     /**

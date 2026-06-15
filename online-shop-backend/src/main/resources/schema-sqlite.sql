@@ -63,3 +63,16 @@ CREATE TABLE IF NOT EXISTS order_item (
     quantity INTEGER NOT NULL,
     subtotal NUMERIC NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_product_category_price_id
+    ON product (category, price, id);
+CREATE INDEX IF NOT EXISTS idx_product_category_id
+    ON product (category, id);
+CREATE INDEX IF NOT EXISTS idx_cart_item_user_id_id
+    ON cart_item (user_id, id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id_id
+    ON orders (user_id, id);
+CREATE INDEX IF NOT EXISTS idx_orders_status_expire_at
+    ON orders (status, expire_at);
+CREATE INDEX IF NOT EXISTS idx_order_item_order_id_id
+    ON order_item (order_id, id);

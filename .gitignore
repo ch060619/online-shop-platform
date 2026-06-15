@@ -40,3 +40,8 @@ coverage/
 spotbugsXml.xml
 checkstyle-cachefile
 checkstyle-result.xml
+
+# Local load-test tools and generated reports
+.local-tools/
+load-test-results/
+reports/load-test/

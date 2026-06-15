@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v2.0
+**文档版本**：v2.1
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-15  
 **负责人**：@dev
@@ -24,12 +24,15 @@
 |------|------|------|----------|
 | GET | `/api/products` | 商品分页列表和搜索 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 | GET | `/api/products/{id}` | 商品详情 | path: `id` |
+| GET | `/api/products/cache/metrics` | 商品缓存指标 | — |
 | POST | `/api/products/add` | 新增商品 | ADMIN + JSON 请求体 |
 | DELETE | `/api/products/delete/{id}` | 删除商品 | ADMIN + path: `id` |
 | PUT | `/api/products/update/{id}` | 更新商品 | ADMIN + path: `id` + JSON 请求体 |
 | GET | `/api/products/query` | 商品分页查询兼容入口 | `name`、`category`、`minPrice`、`maxPrice`、`page`、`pageSize` |
 
 **商品响应字段**：`id`、`name`、`category`、`price`、`stock`、`imageUrl`、`description`
+
+**商品缓存指标字段**：`detailHits`、`detailMisses`、`detailHitRate`、`listHits`、`listMisses`、`listHitRate`
 
 **商品新增/更新请求体**：
 
@@ -202,6 +205,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v2.1 | 2026-06-15 | 新增 `/api/products/cache/metrics` 商品缓存指标接口，用于记录缓存命中率验证数据 | @dev |
 | v2.0 | 2026-06-15 | 登录响应扩展 access token、refresh token、过期时间和角色字段；新增 `/api/auth/refresh`；商品写接口改为 ADMIN 权限 | @dev |
 | v1.9 | 2026-06-15 | 将订单超时关闭说明更新为 RabbitMQ TTL/DLX 超时消息，并明确重复投递幂等 | @dev |
 | v1.8 | 2026-06-15 | 新增订单状态机说明、`PUT /api/orders/{id}/pay` 支付接口、`expireAt`/`paidAt` 响应字段和超时规则 | @dev |

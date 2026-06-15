@@ -16,6 +16,7 @@ import com.example.shop.domain.vo.PageVO;
 import com.example.shop.domain.vo.ProductVO;
 import com.example.shop.exception.BusinessException;
 import com.example.shop.service.ProductService;
+import com.example.shop.service.cache.ProductCacheMetrics;
 import java.math.BigDecimal;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,18 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].id").value(1))
                 .andExpect(jsonPath("$.page.pageSize").value(6));
+    }
+
+    @Test
+    void should_returnCacheMetrics_when_requestCacheMetricsApi() throws Exception {
+        when(productService.cacheMetrics()).thenReturn(new ProductCacheMetrics(3, 1, 4, 2));
+
+        mockMvc.perform(get("/api/products/cache/metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detailHits").value(3))
+                .andExpect(jsonPath("$.data.detailHitRate").value(0.75))
+                .andExpect(jsonPath("$.data.listHits").value(4))
+                .andExpect(jsonPath("$.data.listHitRate").value(0.6666666666666666));
     }
 
     @Test

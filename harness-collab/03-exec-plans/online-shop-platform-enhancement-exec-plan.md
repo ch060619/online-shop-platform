@@ -45,6 +45,10 @@
 | 2026-06-15 | `mvn "-Dtest=AuthServiceImplTest,AuthControllerTest,TokenServiceTest,CommonSupportTest,ProductControllerTest,CartControllerTest,OrderControllerTest,RefreshTokenMapperTest" test` | 通过 | 不适用 | 不适用 | 鉴权安全定向检查，45 个测试通过 |
 | 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 83.26% | 10.62% | 鉴权安全全量门禁，114 个测试通过，Checkstyle 0，SpotBugs 0 |
 | 2026-06-15 | `mvn clean test jacoco:report jacoco:check@jacoco-check` | 通过 | 83.26% | 10.62% | 鉴权安全显式 JaCoCo 校验通过，方法覆盖率 69.75% |
+| 2026-06-15 | `mvn "-Dtest=ProductServiceImplTest,ProductControllerTest,PerformanceSchemaInitializerTest,SqlExplainPlanTest" test` | 通过 | 不适用 | 不适用 | 压测与 SQL 优化定向检查，34 个测试通过 |
+| 2026-06-15 | `.\scripts\loadtest\run-jmeter.ps1 -BaseUrl http://localhost:18080 -Threads 5 -RampSeconds 5 -DurationSeconds 30` | 通过 | 不适用 | 不适用 | JMeter 实测 5003 samples，QPS 166.77，P95 143ms，P99 208ms，错误率 0%，缓存命中率 99.9% |
+| 2026-06-15 | `mvn clean verify -Pharness-new` | 通过 | 88.72% | 11.79% | 压测与 SQL 优化全量门禁，124 个测试通过，Checkstyle 0，SpotBugs 0 |
+| 2026-06-15 | `mvn test jacoco:report jacoco:check@jacoco-check` | 通过 | 88.72% | 11.79% | 压测与 SQL 优化显式 JaCoCo 校验通过，方法覆盖率 74.61% |
 
 ### 覆盖率趋势
 
@@ -56,6 +60,7 @@
 | 2026-06-15 订单状态机阶段 | 89.17% | 10.95% | 72.03% | — |
 | 2026-06-15 RabbitMQ 订单超时阶段 | 88.02% | 10.74% | 70.67% | — |
 | 2026-06-15 鉴权安全阶段 | 83.26% | 10.62% | 69.75% | — |
+| 2026-06-15 压测与 SQL 优化阶段 | 88.72% | 11.79% | 74.61% | — |
 
 **覆盖率报告路径**：`online-shop-backend/target/site/jacoco/index.html`
 
@@ -107,6 +112,7 @@
 | 2026-06-15 订单状态机阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 通过 | 无 |
 | 2026-06-15 鉴权安全阶段 | `harness-new` | 0 | 通过 | 无 |
+| 2026-06-15 压测与 SQL 优化阶段 | `harness-new` | 0 | 通过 | 无 |
 
 ### SpotBugs 检查
 
@@ -118,6 +124,7 @@
 | 2026-06-15 订单状态机阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 RabbitMQ 订单超时阶段 | `harness-new` | 0 | 0 | 通过 |
 | 2026-06-15 鉴权安全阶段 | `harness-new` | 0 | 0 | 通过 |
+| 2026-06-15 压测与 SQL 优化阶段 | `harness-new` | 0 | 0 | 通过 |
 
 ---
 
@@ -127,11 +134,13 @@
 
 | 场景 | 数据量 | 并发数 | QPS | P95 | P99 | 错误率 | 缓存命中率 | 备注 |
 |------|--------|--------|-----|-----|-----|--------|------------|------|
-| 商品列表-缓存前 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 不适用 | — |
-| 商品列表-缓存后 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | — |
-| 商品详情-缓存前 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 不适用 | — |
-| 商品详情-缓存后 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | — |
-| 下单链路 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 不适用 | 校验无重复订单 |
+| 商品列表-缓存后 | 商品 6 条 | 5 | 166.77 | 143ms | 208ms | 0% | 99.9% | JMeter 20260615-221845，`product-list` 场景 1000 samples，P95 5ms，P99 9ms |
+| 商品详情-缓存后 | 商品 6 条 | 5 | 166.77 | 143ms | 208ms | 0% | 99.9% | JMeter 20260615-221845，`product-detail` 场景 1000 samples，P95 5ms，P99 8ms |
+| 下单链路 | 商品 6 条，商品 1 库存预置 100000 | 5 | 166.77 | 143ms | 208ms | 0% | 不适用 | JMeter 20260615-221845，`order-create` 场景 999 samples，P95 50ms，P99 131ms |
+
+**压测机器配置**：Intel(R) Core(TM) i7-14650HX，15.78GB RAM。  
+**压测结果文件**：`load-test-results/20260615-221845/summary.md`（本地生成产物，不提交 Git）。  
+**说明**：本阶段在 Redis 商品缓存已上线后执行压测，不补写缓存前数据，避免引入非实测对比数字。
 
 ---
 
