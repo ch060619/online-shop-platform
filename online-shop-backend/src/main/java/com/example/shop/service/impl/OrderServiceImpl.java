@@ -2,6 +2,7 @@ package com.example.shop.service.impl;
 
 import com.example.shop.common.OrderStatus;
 import com.example.shop.common.UserContext;
+import com.example.shop.config.OrderStateMachineProperties;
 import com.example.shop.domain.dto.CreateOrderRequest;
 import com.example.shop.domain.dto.UpdateOrderRequest;
 import com.example.shop.domain.entity.CartItemDetail;
@@ -36,12 +37,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderServiceImpl implements OrderService {
 
     private static final DateTimeFormatter ORDER_NO_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-
     private final CartItemMapper cartItemMapper;
     private final ProductMapper productMapper;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final OrderIdempotencyService orderIdempotencyService;
+    private final OrderStateMachineProperties stateMachineProperties;
 
     /**
      * 创建订单服务实现。
@@ -51,17 +52,20 @@ public class OrderServiceImpl implements OrderService {
      * @param orderMapper 订单 Mapper
      * @param orderItemMapper 订单明细 Mapper
      * @param orderIdempotencyService 订单幂等服务
+     * @param stateMachineProperties 订单状态机配置
      */
     public OrderServiceImpl(CartItemMapper cartItemMapper,
                             ProductMapper productMapper,
                             OrderMapper orderMapper,
                             OrderItemMapper orderItemMapper,
-                            OrderIdempotencyService orderIdempotencyService) {
+                            OrderIdempotencyService orderIdempotencyService,
+                            OrderStateMachineProperties stateMachineProperties) {
         this.cartItemMapper = cartItemMapper;
         this.productMapper = productMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.orderIdempotencyService = orderIdempotencyService;
+        this.stateMachineProperties = stateMachineProperties;
     }
 
     /**
@@ -130,6 +134,8 @@ public class OrderServiceImpl implements OrderService {
         order.setReceiverPhone(request.getReceiverPhone());
         order.setReceiverAddress(request.getReceiverAddress());
         order.setCreatedAt(now);
+        order.setExpireAt(now.plusMinutes(stateMachineProperties.getPaymentTimeoutMinutes()));
+        order.setUpdatedAt(now);
         orderMapper.insert(order);
 
         for (CartItemDetail cartItem : cartItems) {
@@ -206,15 +212,80 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public OrderVO cancelOrder(Long orderId) {
         Order order = requireOrder(orderId);
-        if (!OrderStatus.CREATED.name().equals(order.getStatus())) {
+        boolean cancelled = closeCreatedOrder(
+                order.getId(), order.getUserId(), OrderStatus.CANCELLED, LocalDateTime.now(), true);
+        if (!cancelled) {
             throw new BusinessException("当前订单状态不允许取消");
         }
-        List<OrderItemDetail> items = orderItemMapper.findByOrderId(order.getId());
-        for (OrderItemDetail item : items) {
-            productMapper.increaseStock(item.getProductId(), item.getQuantity());
-        }
-        orderMapper.updateStatus(orderId, UserContext.getCurrentUserId(), OrderStatus.CANCELLED.name());
         return getOrder(orderId);
+    }
+
+    /**
+     * 支付已创建订单。
+     *
+     * @param orderId 订单 ID
+     * @return 支付后的订单详情
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderVO payOrder(Long orderId) {
+        Order order = requireOrder(orderId);
+        LocalDateTime now = LocalDateTime.now();
+        if (!OrderStatus.CREATED.name().equals(order.getStatus())) {
+            throw new BusinessException("当前订单状态不允许支付");
+        }
+        if (order.getExpireAt() != null && !order.getExpireAt().isAfter(now)) {
+            closeCreatedOrder(order.getId(), order.getUserId(), OrderStatus.TIMEOUT, now, true);
+            throw new BusinessException("订单已超时");
+        }
+        int affected = orderMapper.updateStatusWhen(
+                order.getId(),
+                order.getUserId(),
+                OrderStatus.CREATED.name(),
+                OrderStatus.PAID.name(),
+                now,
+                now);
+        if (affected == 0) {
+            throw new BusinessException("当前订单状态不允许支付");
+        }
+        return getOrder(orderId);
+    }
+
+    /**
+     * 处理单笔超时订单。
+     *
+     * @param orderId 订单 ID
+     * @return 是否完成超时关闭
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean timeoutOrder(Long orderId) {
+        Order order = orderMapper.findById(orderId);
+        LocalDateTime now = LocalDateTime.now();
+        if (order == null || order.getExpireAt() == null || order.getExpireAt().isAfter(now)) {
+            return false;
+        }
+        return closeCreatedOrder(order.getId(), order.getUserId(), OrderStatus.TIMEOUT, now, false);
+    }
+
+    /**
+     * 扫描并处理已超时订单。
+     *
+     * @param limit 每批处理上限
+     * @return 本次处理成功关闭的订单数
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int timeoutExpiredOrders(int limit) {
+        List<Order> orders = orderMapper.findExpiredCreatedOrders(
+                LocalDateTime.now(), OrderStatus.CREATED.name(), limit);
+        int closedCount = 0;
+        for (Order order : orders) {
+            if (timeoutOrder(order.getId())) {
+                closedCount++;
+            }
+        }
+        return closedCount;
     }
 
     /**
@@ -274,6 +345,8 @@ public class OrderServiceImpl implements OrderService {
         vo.setTotalAmount(order.getTotalAmount());
         vo.setStatus(order.getStatus());
         vo.setCreatedAt(order.getCreatedAt());
+        vo.setExpireAt(order.getExpireAt());
+        vo.setPaidAt(order.getPaidAt());
         return vo;
     }
 
@@ -287,8 +360,29 @@ public class OrderServiceImpl implements OrderService {
         vo.setReceiverPhone(order.getReceiverPhone());
         vo.setReceiverAddress(order.getReceiverAddress());
         vo.setCreatedAt(order.getCreatedAt());
+        vo.setExpireAt(order.getExpireAt());
+        vo.setPaidAt(order.getPaidAt());
         vo.setItems(items.stream().map(this::toOrderItemVO).collect(Collectors.toList()));
         return vo;
+    }
+
+    private boolean closeCreatedOrder(Long orderId,
+                                      Long userId,
+                                      OrderStatus toStatus,
+                                      LocalDateTime now,
+                                      boolean userScoped) {
+        int affected = userScoped
+                ? orderMapper.updateStatusWhen(
+                        orderId, userId, OrderStatus.CREATED.name(), toStatus.name(), null, now)
+                : orderMapper.updateStatusByIdWhen(orderId, OrderStatus.CREATED.name(), toStatus.name(), now);
+        if (affected == 0) {
+            return false;
+        }
+        List<OrderItemDetail> items = orderItemMapper.findByOrderId(orderId);
+        for (OrderItemDetail item : items) {
+            productMapper.increaseStock(item.getProductId(), item.getQuantity());
+        }
+        return true;
     }
 
     private OrderItemVO toOrderItemVO(OrderItemDetail item) {

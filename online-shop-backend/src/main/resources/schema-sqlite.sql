@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS orders (
     receiver_name TEXT NOT NULL,
     receiver_phone TEXT NOT NULL,
     receiver_address TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expire_at TEXT,
+    paid_at TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS order_item (

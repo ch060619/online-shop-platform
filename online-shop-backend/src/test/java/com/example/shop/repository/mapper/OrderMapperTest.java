@@ -3,6 +3,7 @@ package com.example.shop.repository.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.shop.common.OrderStatus;
+import com.example.shop.config.OrderSchemaInitializer;
 import com.example.shop.domain.entity.Order;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -19,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 @MybatisTest
 @ActiveProfiles("sqlite")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(OrderSchemaInitializer.class)
 class OrderMapperTest {
 
     @Autowired
@@ -30,6 +33,7 @@ class OrderMapperTest {
     @Test
     void should_returnCreatedAt_when_orderInsertedWithLocalDateTime() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 6, 10, 21, 30, 15);
+        LocalDateTime expireAt = LocalDateTime.of(2026, 6, 10, 22, 0, 15);
         Order order = order("TEST_TIME_1", createdAt);
 
         int inserted = orderMapper.insert(order);
@@ -41,6 +45,8 @@ class OrderMapperTest {
 
         assertThat(inserted).isEqualTo(1);
         assertThat(found.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(found.getExpireAt()).isEqualTo(expireAt);
+        assertThat(found.getUpdatedAt()).isEqualTo(createdAt);
         assertThat(rawCreatedAt).isEqualTo("2026-06-10 21:30:15");
     }
 
@@ -66,6 +72,21 @@ class OrderMapperTest {
         assertThat(found.getCreatedAt()).isEqualTo(LocalDateTime.of(2026, 6, 10, 21, 30, 15));
     }
 
+    @Test
+    void should_findExpiredCreatedOrders_when_orderExpired() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 6, 10, 21, 30, 15);
+        Order order = order("TEST_TIME_3", createdAt);
+        order.setExpireAt(LocalDateTime.of(2026, 6, 10, 21, 45, 15));
+        orderMapper.insert(order);
+
+        var found = orderMapper.findExpiredCreatedOrders(
+                LocalDateTime.of(2026, 6, 10, 22, 0, 0),
+                OrderStatus.CREATED.name(),
+                10);
+
+        assertThat(found).extracting(Order::getOrderNo).contains("TEST_TIME_3");
+    }
+
     private Order order(String orderNo, LocalDateTime createdAt) {
         Order order = new Order();
         order.setOrderNo(orderNo);
@@ -76,6 +97,8 @@ class OrderMapperTest {
         order.setReceiverPhone("13800000000");
         order.setReceiverAddress("上海市");
         order.setCreatedAt(createdAt);
+        order.setExpireAt(createdAt.plusMinutes(30));
+        order.setUpdatedAt(createdAt);
         return order;
     }
 }

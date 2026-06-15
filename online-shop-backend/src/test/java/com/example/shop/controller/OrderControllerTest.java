@@ -108,6 +108,17 @@ class OrderControllerTest {
     }
 
     @Test
+    void should_returnOrder_when_payOrderValid() throws Exception {
+        when(tokenService.parseUserId("valid-token")).thenReturn(1L);
+        when(orderService.payOrder(1L)).thenReturn(order());
+
+        mockMvc.perform(put("/api/orders/1/pay").header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("支付订单成功"))
+                .andExpect(jsonPath("$.data.orderNo").value("NO1"));
+    }
+
+    @Test
     void should_returnSuccess_when_deleteOrderValid() throws Exception {
         when(tokenService.parseUserId("valid-token")).thenReturn(1L);
 

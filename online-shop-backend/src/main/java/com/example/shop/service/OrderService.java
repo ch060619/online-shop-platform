@@ -61,6 +61,30 @@ public interface OrderService {
     OrderVO cancelOrder(Long orderId);
 
     /**
+     * 支付已创建订单。
+     *
+     * @param orderId 订单 ID
+     * @return 支付后的订单详情
+     */
+    OrderVO payOrder(Long orderId);
+
+    /**
+     * 处理单笔超时订单。
+     *
+     * @param orderId 订单 ID
+     * @return 是否完成超时关闭
+     */
+    boolean timeoutOrder(Long orderId);
+
+    /**
+     * 扫描并处理已超时订单。
+     *
+     * @param limit 每批处理上限
+     * @return 本次处理成功关闭的订单数
+     */
+    int timeoutExpiredOrders(int limit);
+
+    /**
      * 删除已取消订单。
      *
      * @param orderId 订单 ID

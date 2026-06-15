@@ -24,4 +24,7 @@ public class Order {
     private String receiverPhone;
     private String receiverAddress;
     private LocalDateTime createdAt;
+    private LocalDateTime expireAt;
+    private LocalDateTime paidAt;
+    private LocalDateTime updatedAt;
 }

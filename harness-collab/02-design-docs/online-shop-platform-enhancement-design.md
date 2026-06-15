@@ -5,13 +5,13 @@
 **创建时间**：2026-06-15  
 **最后更新**：2026-06-15  
 **负责人**：@dev  
-**确认依据**：开发者已确认采用 Redis+Lua 订单幂等和 RabbitMQ 延迟队列的深挖版完善计划。
+**确认依据**：开发者已确认采用 Redis+Lua 订单幂等；超时订单 v1 先使用定时任务，Docker Compose 保留 RabbitMQ 服务位供后续替换。
 
 ---
 
 ## 概述
 
-本设计在现有 Spring Boot 3、MyBatis Plus、SQLite/MySQL、Vue 3 项目基础上增量增强，不改变 Controller → Service → Domain ← Repository 的分层方向。Redis 用于商品缓存和订单幂等状态，RabbitMQ 用于订单超时延迟消息，数据库仍作为订单、库存、用户和刷新令牌的最终持久化来源。
+本设计在现有 Spring Boot 3、MyBatis Plus、SQLite/MySQL、Vue 3 项目基础上增量增强，不改变 Controller → Service → Domain ← Repository 的分层方向。Redis 用于商品缓存和订单幂等状态，定时任务用于 v1 超时订单扫描，数据库仍作为订单、库存、用户和刷新令牌的最终持久化来源。Docker Compose 保留 RabbitMQ 服务位，后续可替换超时执行器。
 
 ---
 
@@ -28,8 +28,7 @@ graph TD
     Repository --> DB[("SQLite / MySQL")]
 
     Service --> RedisCache["Redis\n商品缓存 / 幂等状态"]
-    Service --> RabbitProducer["RabbitMQ Producer\n订单超时消息"]
-    RabbitConsumer["RabbitMQ Consumer\n超时订单处理"] --> Service
+    Scheduler["定时任务\n超时订单扫描"] --> Service
 
     Config["Config 层\nRedis / Rabbit / Security 配置"] --> Service
     Config --> Controller
@@ -52,12 +51,12 @@ graph TD
 5. 事务成功后写入 Redis `SUCCESS` 结果；事务失败写入 `FAILED` 或删除处理中状态，避免永久占用。
 6. 数据库订单唯一约束只作为最终兜底，不作为主幂等方案。
 
-**RabbitMQ 超时订单流程**：
-1. 创建订单成功后发送延迟消息，消息体包含 `orderId`、`userId`、`orderNo`、`expireAt`。
-2. 消费者收到消息后调用 OrderService 的超时处理方法。
+**定时任务超时订单流程**：
+1. 创建订单成功后写入 `expireAt`，表示支付截止时间。
+2. 定时任务按固定频率扫描 `expireAt <= now` 且状态为 `CREATED` 的订单。
 3. Service 使用条件状态更新，只允许 `CREATED` → `TIMEOUT`。
 4. 状态更新成功后读取订单明细并回补库存；状态更新失败说明已支付、已取消或已超时，不做库存变更。
-5. 消费者处理失败时交由 RabbitMQ 重试或死信，不在 Controller 中处理消息逻辑。
+5. 定时任务重复扫描时依靠条件状态更新保证幂等；后续接入 RabbitMQ 时复用同一 Service 方法。
 
 **鉴权安全流程**：
 1. AuthController 调用 AuthService 登录或刷新令牌。
@@ -117,7 +116,7 @@ graph TD
 
 | 字段名 | Java 类型 | 数据库类型 | 约束 | 说明 |
 |--------|-----------|-----------|------|------|
-| `expireAt` | `LocalDateTime` | DATETIME / TEXT | NOT NULL | 支付截止时间 |
+| `expireAt` | `LocalDateTime` | DATETIME / TEXT | NULL | 支付截止时间；新订单由应用写入，历史订单可为空 |
 | `paidAt` | `LocalDateTime` | DATETIME / TEXT | NULL | 支付时间 |
 | `updatedAt` | `LocalDateTime` | DATETIME / TEXT | NOT NULL | 更新时间 |
 
@@ -148,16 +147,15 @@ graph TD
 | `shop:product:list:keys` | Set | 无固定 TTL | 列表缓存 key 集合，用于写后清理 |
 | `shop:order:idempotency:{userId}:{key}` | Hash/String | 24h | 幂等状态、请求摘要、订单 ID 或错误 |
 
-### RabbitMQ 设计
+### 超时执行器设计
 
 | 组件 | 名称 | 说明 |
 |------|------|------|
-| Exchange | `shop.order.delay.exchange` | 订单超时延迟交换机 |
-| Queue | `shop.order.timeout.queue` | 超时订单消费队列 |
-| Routing Key | `order.timeout` | 超时消息路由键 |
-| Message | `OrderTimeoutMessage` | `orderId`、`userId`、`orderNo`、`expireAt` |
+| Scheduler | `OrderTimeoutScheduler` | 按固定频率触发超时订单扫描 |
+| Service 方法 | `timeoutExpiredOrders` | 扫描并处理已过期 CREATED 订单 |
+| Service 方法 | `timeoutOrder` | 单笔订单条件流转 `CREATED -> TIMEOUT` 并回补库存 |
 
-延迟实现优先使用 RabbitMQ 延迟消息插件；Docker Compose 需要包含支持延迟插件的镜像或明确插件启用步骤。若本地环境插件不可用，设计文档允许以 TTL + DLX 作为等价实现，但代码接口保持 `OrderTimeoutPublisher` 抽象不变。
+RabbitMQ 服务位在 Compose 中保留，后续可新增 `OrderTimeoutPublisher` 与 Consumer 替换定时扫描，业务幂等仍由 `timeoutOrder` 的条件状态更新保证。
 
 ---
 
@@ -167,8 +165,8 @@ graph TD
 |------|------|------|----------|
 | Spring Data Redis | Spring Boot 3.2.x 管理 | Redis 访问与 Lua 执行 | 与 Spring Boot 集成稳定 |
 | Redis Lua | Redis 内置 | 幂等状态原子判断 | 避免并发请求穿透业务事务 |
-| Spring AMQP | Spring Boot 3.2.x 管理 | RabbitMQ 生产与消费 | 标准消息队列集成 |
-| RabbitMQ | 3.x | 延迟订单超时处理 | 简历深挖点，适合讲异步一致性 |
+| Spring Scheduling | Spring Boot 3.2.x 管理 | 超时订单定时扫描 | v1 简洁稳定，便于测试 |
+| RabbitMQ | 3.x | 后续替换超时执行器的服务位 | Compose 保留服务位，便于扩展异步一致性深挖 |
 | Spring Security Crypto | Spring Boot 3.2.x 管理 | BCrypt | 只引入 crypto 能力，避免大改安全框架 |
 | JMeter/Gatling | 待选 | 压测 | 产出可复现实测数据 |
 | Docker Compose | v2 | 本地部署 | 一键拉起完整依赖环境 |
@@ -181,7 +179,7 @@ graph TD
 |------|----------|------|----------|
 | Redis 异常影响商品查询 | 中 | 中 | 商品缓存异常降级数据库，幂等链路返回明确错误 |
 | 幂等处理中状态残留 | 高 | 中 | 设置处理中 TTL，失败时清理或写 FAILED |
-| RabbitMQ 重复投递 | 高 | 高 | 消费端使用订单状态条件更新保证幂等 |
+| 定时任务重复扫描 | 高 | 高 | Service 使用订单状态条件更新保证幂等 |
 | 支付、取消、超时并发竞争 | 高 | 中 | Mapper 更新 SQL 必须带当前状态条件 |
 | BCrypt 改造影响种子用户登录 | 中 | 中 | 更新 data-sqlite.sql，并补登录测试 |
 | 压测数字不稳定 | 中 | 中 | 记录机器配置、数据量和多轮结果，不写未验证数字 |
@@ -190,7 +188,7 @@ graph TD
 
 1. Controller 不直接访问 Redis、RabbitMQ 或 Mapper，只调用 Service。
 2. Redis+Lua 幂等是主方案，数据库唯一约束只做最终兜底。
-3. RabbitMQ 延迟队列是超时订单主方案，不用定时任务实现 v1。
+3. 超时订单 v1 使用定时任务，RabbitMQ 后续可替换执行器但不改变 Service 状态机。
 4. 所有新增包必须包含 `package-info.java`，所有公共方法必须有 Javadoc。
 5. 每个阶段完成后先两轮质量检查，再本地 commit，不推送 GitHub。
 
@@ -205,7 +203,7 @@ graph TD
 | Service 单元测试 | `OrderServiceImplTest` | Mockito | 幂等首次提交、重复返回、冲突、失败清理 |
 | 并发测试 | `OrderIdempotencyConcurrencyTest` | JUnit 5 | 10-50 次同 key 并发只生成一笔订单 |
 | Service 单元测试 | `OrderStateMachineTest` | Mockito | 支付、取消、超时状态流转 |
-| Message 测试 | `OrderTimeoutConsumerTest` | Mockito/Awaitility | 重复消息不重复回补库存 |
+| Scheduler 测试 | `OrderTimeoutSchedulerTest` | Mockito | 定时扫描触发超时处理 |
 | Controller 切片测试 | `OrderControllerTest`、`AuthControllerTest`、`ProductControllerTest` | `@WebMvcTest` | 新请求头、支付接口、刷新接口、权限拒绝 |
 | Repository 切片测试 | `OrderMapperTest`、`RefreshTokenMapperTest` | MyBatis 测试 | 条件状态更新、令牌查询和撤销 |
 | 压测脚本 | JMeter/Gatling | 工具执行 | 商品查询、加购物车、下单链路指标 |
@@ -228,3 +226,4 @@ graph TD
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
 | v1.0 | 2026-06-15 | 创建深挖增强技术设计，明确 Redis+Lua、RabbitMQ、状态机、安全、压测和部署方案 | @dev |
+| v1.1 | 2026-06-15 | 调整超时订单 v1 为定时任务执行器，保留 RabbitMQ 后续替换点 | @dev |

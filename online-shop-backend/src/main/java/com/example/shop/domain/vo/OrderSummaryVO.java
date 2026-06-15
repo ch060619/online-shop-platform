@@ -15,4 +15,6 @@ public class OrderSummaryVO {
     private BigDecimal totalAmount;
     private String status;
     private LocalDateTime createdAt;
+    private LocalDateTime expireAt;
+    private LocalDateTime paidAt;
 }

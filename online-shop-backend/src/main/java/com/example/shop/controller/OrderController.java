@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/orders")
-@Tag(name = "订单管理", description = "订单提交、列表、详情和取消接口")
+@Tag(name = "订单管理", description = "订单提交、列表、详情、支付和取消接口")
 public class OrderController {
 
     private final OrderService orderService;
@@ -100,6 +100,18 @@ public class OrderController {
     @Operation(summary = "取消订单", description = "取消已创建订单并回补库存")
     public ApiResponse<OrderVO> cancelOrder(@PathVariable Long id) {
         return ApiResponse.success("取消订单成功", orderService.cancelOrder(id));
+    }
+
+    /**
+     * 模拟支付订单。
+     *
+     * @param id 订单 ID
+     * @return 订单详情响应
+     */
+    @PutMapping("/{id}/pay")
+    @Operation(summary = "支付订单", description = "模拟支付当前用户已创建订单")
+    public ApiResponse<OrderVO> payOrder(@PathVariable Long id) {
+        return ApiResponse.success("支付订单成功", orderService.payOrder(id));
     }
 
     /**

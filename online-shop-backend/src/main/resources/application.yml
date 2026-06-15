@@ -41,3 +41,7 @@ shop:
     order:
       processing-ttl-seconds: 30
       success-ttl-seconds: 86400
+  order:
+    payment-timeout-minutes: 30
+    timeout-scan-fixed-delay-millis: 60000
+    timeout-scan-batch-size: 100

@@ -11,7 +11,17 @@ public enum OrderStatus {
     CREATED,
 
     /**
+     * 已支付。
+     */
+    PAID,
+
+    /**
      * 已取消。
      */
-    CANCELLED
+    CANCELLED,
+
+    /**
+     * 已超时。
+     */
+    TIMEOUT
 }

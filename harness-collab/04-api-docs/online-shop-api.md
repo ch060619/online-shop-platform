@@ -1,7 +1,7 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v1.7
+**文档版本**：v1.8
 **创建时间**：2026-06-09  
 **最后更新**：2026-06-15  
 **负责人**：@dev
@@ -103,6 +103,7 @@ Authorization: Bearer eyJ...
 | GET | `/api/orders` | 查询订单列表 | — |
 | GET | `/api/orders/{id}` | 查询订单详情 | — |
 | PUT | `/api/orders/{id}` | 更新订单收货信息 | `{ "receiverName": "李四", "receiverPhone": "13900000000", "receiverAddress": "北京市" }` |
+| PUT | `/api/orders/{id}/pay` | 模拟支付订单 | — |
 | PUT | `/api/orders/{id}/cancel` | 取消订单 | — |
 | DELETE | `/api/orders/{id}` | 删除已取消订单 | — |
 
@@ -111,11 +112,13 @@ Authorization: Bearer eyJ...
 | 状态 | 说明 |
 |------|------|
 | `CREATED` | 已创建 |
+| `PAID` | 已支付 |
 | `CANCELLED` | 已取消 |
+| `TIMEOUT` | 超时关闭 |
 
-**订单详情字段**：`id`、`orderNo`、`totalAmount`、`status`、`receiverName`、`receiverPhone`、`receiverAddress`、`createdAt`、`items`
+**订单详情字段**：`id`、`orderNo`、`totalAmount`、`status`、`receiverName`、`receiverPhone`、`receiverAddress`、`createdAt`、`expireAt`、`paidAt`、`items`
 
-`createdAt` 由后端应用在创建订单时使用系统时间写入，持久化为 `yyyy-MM-dd HH:mm:ss` 格式；读取时兼容历史 ISO `yyyy-MM-ddTHH:mm:ss` 格式，避免 SQLite 时间戳解析失败。
+`createdAt`、`expireAt`、`paidAt` 由后端应用使用系统时间写入，持久化为 `yyyy-MM-dd HH:mm:ss` 格式；读取时兼容历史 ISO `yyyy-MM-ddTHH:mm:ss` 格式，避免 SQLite 时间戳解析失败。
 
 **订单提交幂等规则**：
 
@@ -125,6 +128,13 @@ Authorization: Bearer eyJ...
 - 首次请求仍在处理中时，重复请求返回 `code=409`，提示稍后重试。
 
 > 订单接口均需要登录令牌，查询结果只返回当前登录用户的数据。仅 `CREATED` 状态订单允许修改或取消，仅 `CANCELLED` 状态订单允许删除。
+
+**订单状态机规则**：
+
+- `CREATED -> PAID`：调用 `PUT /api/orders/{id}/pay` 模拟支付成功，记录 `paidAt`。
+- `CREATED -> CANCELLED`：调用 `PUT /api/orders/{id}/cancel` 取消订单，并回补库存。
+- `CREATED -> TIMEOUT`：订单超过 `expireAt` 后由定时任务扫描关闭，并回补库存。
+- 支付、取消、超时都使用条件状态更新；重复扫描或并发竞争时不会重复回补库存。
 
 ---
 
@@ -156,6 +166,8 @@ Authorization: Bearer eyJ...
 | 订单幂等提交成功 | `POST /api/orders`，携带新 `Idempotency-Key` | `code=200`，创建一笔订单 |
 | 订单重复提交 | 使用相同 `Idempotency-Key` 和相同请求体重试 `POST /api/orders` | `code=200`，返回同一订单 |
 | 订单幂等冲突 | 使用相同 `Idempotency-Key` 和不同请求体重试 `POST /api/orders` | `code=409` |
+| 订单支付成功 | `PUT /api/orders/{id}/pay`，订单为 `CREATED` 且未过期 | `code=200`，订单状态变为 `PAID` |
+| 订单超时关闭 | 超时定时任务扫描到 `expireAt <= now` 的 `CREATED` 订单 | 订单状态变为 `TIMEOUT`，库存只回补一次 |
 
 ---
 
@@ -163,6 +175,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v1.8 | 2026-06-15 | 新增订单状态机说明、`PUT /api/orders/{id}/pay` 支付接口、`expireAt`/`paidAt` 响应字段和超时规则 | @dev |
 | v1.7 | 2026-06-15 | `POST /api/orders` 新增必填 `Idempotency-Key` 请求头和 409 幂等冲突说明 | @dev |
 | v1.6 | 2026-06-10 | 明确订单 `createdAt` 的 SQLite 兼容持久化格式和历史 ISO 格式读回兼容策略 | @dev |
 | v1.5 | 2026-06-10 | 明确订单 `createdAt` 由后端应用系统时间写入，修复数据库默认时间导致的时区偏差 | @dev |

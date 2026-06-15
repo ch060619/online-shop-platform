@@ -3,12 +3,15 @@ package com.example.shop.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.shop.common.OrderStatus;
 import com.example.shop.common.UserContext;
+import com.example.shop.config.OrderStateMachineProperties;
 import com.example.shop.domain.dto.CreateOrderRequest;
 import com.example.shop.domain.dto.UpdateOrderRequest;
 import com.example.shop.domain.entity.CartItemDetail;
@@ -29,7 +32,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -54,12 +56,18 @@ class OrderServiceImplTest {
     @Mock
     private OrderIdempotencyService orderIdempotencyService;
 
-    @InjectMocks
     private OrderServiceImpl orderService;
 
     @BeforeEach
     void setUp() {
         UserContext.setCurrentUserId(1L);
+        orderService = new OrderServiceImpl(
+                cartItemMapper,
+                productMapper,
+                orderMapper,
+                orderItemMapper,
+                orderIdempotencyService,
+                stateMachineProperties());
     }
 
     @AfterEach
@@ -183,11 +191,118 @@ class OrderServiceImplTest {
     @Test
     void should_cancelOrder_when_orderCreated() {
         when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+        when(orderMapper.updateStatusWhen(
+                eq(10L),
+                eq(1L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.CANCELLED.name()),
+                isNull(),
+                any(LocalDateTime.class))).thenReturn(1);
         when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
 
         assertThat(orderService.cancelOrder(10L).getStatus()).isEqualTo(OrderStatus.CREATED.name());
         verify(productMapper).increaseStock(1L, 2);
-        verify(orderMapper).updateStatus(10L, 1L, OrderStatus.CANCELLED.name());
+        verify(orderMapper).updateStatusWhen(
+                eq(10L),
+                eq(1L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.CANCELLED.name()),
+                isNull(),
+                any(LocalDateTime.class));
+    }
+
+    @Test
+    void should_payOrder_when_orderCreated() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(order(OrderStatus.CREATED.name()));
+        when(orderMapper.updateStatusWhen(
+                eq(10L),
+                eq(1L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.PAID.name()),
+                any(LocalDateTime.class),
+                any(LocalDateTime.class))).thenReturn(1);
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.payOrder(10L).getOrderNo()).isEqualTo("NO1");
+        verify(productMapper, never()).increaseStock(1L, 2);
+    }
+
+    @Test
+    void should_throwException_when_paidOrderPaidAgain() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(expiredOrder(OrderStatus.PAID.name()));
+
+        assertThatThrownBy(() -> orderService.payOrder(10L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("当前订单状态不允许支付");
+        verify(orderMapper, never()).updateStatusWhen(
+                any(Long.class),
+                any(Long.class),
+                any(String.class),
+                eq(OrderStatus.TIMEOUT.name()),
+                isNull(),
+                any(LocalDateTime.class));
+    }
+
+    @Test
+    void should_timeoutOrderAndRejectPayment_when_createdOrderExpired() {
+        when(orderMapper.findByIdAndUserId(10L, 1L)).thenReturn(expiredOrder(OrderStatus.CREATED.name()));
+        when(orderMapper.updateStatusWhen(
+                eq(10L),
+                eq(1L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.TIMEOUT.name()),
+                isNull(),
+                any(LocalDateTime.class))).thenReturn(1);
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThatThrownBy(() -> orderService.payOrder(10L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("订单已超时");
+        verify(productMapper).increaseStock(1L, 2);
+    }
+
+    @Test
+    void should_timeoutOrderAndRestoreStock_when_orderCreated() {
+        when(orderMapper.findById(10L)).thenReturn(expiredOrder(OrderStatus.CREATED.name()));
+        when(orderMapper.updateStatusByIdWhen(
+                eq(10L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.TIMEOUT.name()),
+                any(LocalDateTime.class))).thenReturn(1);
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.timeoutOrder(10L)).isTrue();
+        verify(productMapper).increaseStock(1L, 2);
+    }
+
+    @Test
+    void should_skipStockRestore_when_timeoutOrderAlreadyClosed() {
+        when(orderMapper.findById(10L)).thenReturn(expiredOrder(OrderStatus.PAID.name()));
+        when(orderMapper.updateStatusByIdWhen(
+                eq(10L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.TIMEOUT.name()),
+                any(LocalDateTime.class))).thenReturn(0);
+
+        assertThat(orderService.timeoutOrder(10L)).isFalse();
+        verify(productMapper, never()).increaseStock(1L, 2);
+    }
+
+    @Test
+    void should_timeoutExpiredOrders_when_createdOrdersExpired() {
+        when(orderMapper.findExpiredCreatedOrders(
+                any(LocalDateTime.class),
+                eq(OrderStatus.CREATED.name()),
+                eq(100))).thenReturn(Collections.singletonList(expiredOrder(OrderStatus.CREATED.name())));
+        when(orderMapper.findById(10L)).thenReturn(expiredOrder(OrderStatus.CREATED.name()));
+        when(orderMapper.updateStatusByIdWhen(
+                eq(10L),
+                eq(OrderStatus.CREATED.name()),
+                eq(OrderStatus.TIMEOUT.name()),
+                any(LocalDateTime.class))).thenReturn(1);
+        when(orderItemMapper.findByOrderId(10L)).thenReturn(Collections.singletonList(orderItemDetail()));
+
+        assertThat(orderService.timeoutExpiredOrders(100)).isEqualTo(1);
     }
 
     @Test
@@ -284,11 +399,21 @@ class OrderServiceImplTest {
         Order order = new Order();
         order.setId(10L);
         order.setOrderNo("NO1");
+        order.setUserId(1L);
         order.setTotalAmount(new BigDecimal("20.00"));
         order.setStatus(status);
         order.setReceiverName("张三");
         order.setReceiverPhone("13800000000");
         order.setReceiverAddress("上海市");
+        order.setCreatedAt(LocalDateTime.now());
+        order.setExpireAt(LocalDateTime.now().plusMinutes(30));
+        return order;
+    }
+
+    private Order expiredOrder(String status) {
+        Order order = order(status);
+        order.setCreatedAt(LocalDateTime.now().minusMinutes(60));
+        order.setExpireAt(LocalDateTime.now().minusMinutes(30));
         return order;
     }
 
@@ -303,5 +428,12 @@ class OrderServiceImplTest {
         detail.setQuantity(2);
         detail.setSubtotal(new BigDecimal("20.00"));
         return detail;
+    }
+
+    private OrderStateMachineProperties stateMachineProperties() {
+        OrderStateMachineProperties properties = new OrderStateMachineProperties();
+        properties.setPaymentTimeoutMinutes(30);
+        properties.setTimeoutScanBatchSize(100);
+        return properties;
     }
 }

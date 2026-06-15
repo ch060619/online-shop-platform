@@ -20,5 +20,7 @@ public class OrderVO {
     private String receiverPhone;
     private String receiverAddress;
     private LocalDateTime createdAt;
+    private LocalDateTime expireAt;
+    private LocalDateTime paidAt;
     private List<OrderItemVO> items = new ArrayList<>();
 }

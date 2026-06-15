@@ -40,8 +40,12 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `receiver_name` VARCHAR(50) NOT NULL,
     `receiver_phone` VARCHAR(30) NOT NULL,
     `receiver_address` VARCHAR(200) NOT NULL,
+    `expire_at` DATETIME,
+    `paid_at` DATETIME,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    KEY `idx_orders_status_expire_at` (`status`, `expire_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `order_item` (

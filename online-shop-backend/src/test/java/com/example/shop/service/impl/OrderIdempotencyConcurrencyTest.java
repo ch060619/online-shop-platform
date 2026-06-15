@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.shop.common.OrderStatus;
 import com.example.shop.common.UserContext;
+import com.example.shop.config.OrderStateMachineProperties;
 import com.example.shop.domain.dto.CreateOrderRequest;
 import com.example.shop.domain.entity.CartItemDetail;
 import com.example.shop.domain.entity.Order;
@@ -63,7 +64,12 @@ class OrderIdempotencyConcurrencyTest {
     void setUp() {
         UserContext.setCurrentUserId(1L);
         orderService = new OrderServiceImpl(
-                cartItemMapper, productMapper, orderMapper, orderItemMapper, orderIdempotencyService);
+                cartItemMapper,
+                productMapper,
+                orderMapper,
+                orderItemMapper,
+                orderIdempotencyService,
+                stateMachineProperties());
     }
 
     @AfterEach
@@ -165,6 +171,7 @@ class OrderIdempotencyConcurrencyTest {
         order.setReceiverName("张三");
         order.setReceiverPhone("13800000000");
         order.setReceiverAddress("上海市");
+        order.setExpireAt(java.time.LocalDateTime.now().plusMinutes(30));
         return order;
     }
 
@@ -179,5 +186,12 @@ class OrderIdempotencyConcurrencyTest {
         detail.setQuantity(2);
         detail.setSubtotal(new BigDecimal("20.00"));
         return detail;
+    }
+
+    private OrderStateMachineProperties stateMachineProperties() {
+        OrderStateMachineProperties properties = new OrderStateMachineProperties();
+        properties.setPaymentTimeoutMinutes(30);
+        properties.setTimeoutScanBatchSize(100);
+        return properties;
     }
 }
