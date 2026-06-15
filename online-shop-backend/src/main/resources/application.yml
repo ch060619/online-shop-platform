@@ -13,6 +13,11 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2s
 
 mybatis-plus:
   configuration:
@@ -24,3 +29,11 @@ shop:
   auth:
     token-secret: online-shop-demo-secret
     token-expire-seconds: 7200
+  cache:
+    product:
+      detail-ttl-seconds: 600
+      detail-ttl-random-seconds: 120
+      list-ttl-seconds: 180
+      list-ttl-random-seconds: 60
+      null-ttl-seconds: 60
+      preload-product-ids: 1,2,3
