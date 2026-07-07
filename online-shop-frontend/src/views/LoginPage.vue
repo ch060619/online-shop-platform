@@ -46,7 +46,32 @@ const form = reactive({
   phone: ''
 })
 
+const mobilePattern = /^1[3-9]\d{9}$/
+
+const validateForm = () => {
+  if (!form.username.trim()) {
+    ElMessage.error('用户名不能为空')
+    return false
+  }
+  if (!form.password) {
+    ElMessage.error('密码不能为空')
+    return false
+  }
+  if (mode.value === 'register' && !form.nickname.trim()) {
+    ElMessage.error('昵称不能为空')
+    return false
+  }
+  if (mode.value === 'register' && form.phone && !mobilePattern.test(form.phone)) {
+    ElMessage.error('手机号格式不正确')
+    return false
+  }
+  return true
+}
+
 const submit = async () => {
+  if (!validateForm()) {
+    return
+  }
   loading.value = true
   try {
     const payload = mode.value === 'login'

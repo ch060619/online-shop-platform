@@ -99,6 +99,7 @@ const addressForm = reactive({
   receiverAddress: '',
   defaultAddress: false
 })
+const mobilePattern = /^1[3-9]\d{9}$/
 
 const loadAll = async () => {
   const [profileResult, addressResult] = await Promise.all([
@@ -110,6 +111,14 @@ const loadAll = async () => {
 }
 
 const changePassword = async () => {
+  if (!passwordForm.oldPassword) {
+    ElMessage.error('原密码不能为空')
+    return
+  }
+  if (passwordForm.newPassword.length < 6) {
+    ElMessage.error('新密码长度不能少于 6 位')
+    return
+  }
   await userApi.changePassword(passwordForm)
   ElMessage.success('密码已修改，请重新登录')
   clearAuth()
@@ -134,6 +143,18 @@ const startEdit = (address) => {
 }
 
 const saveAddress = async () => {
+  if (!addressForm.receiverName.trim()) {
+    ElMessage.error('收货人不能为空')
+    return
+  }
+  if (!mobilePattern.test(addressForm.receiverPhone)) {
+    ElMessage.error('手机号格式不正确')
+    return
+  }
+  if (!addressForm.receiverAddress.trim()) {
+    ElMessage.error('收货地址不能为空')
+    return
+  }
   if (editingAddressId.value) {
     await addressApi.update(editingAddressId.value, addressForm)
     ElMessage.success('地址已更新')
