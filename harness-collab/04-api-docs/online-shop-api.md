@@ -1,9 +1,9 @@
 # 电商购物平台 API 文档
 
 **关联设计文档**：[电商购物平台设计](../02-design-docs/online-shop-platform-design.md)  
-**文档版本**：v2.2
+**文档版本**：v2.3
 **创建时间**：2026-06-09  
-**最后更新**：2026-06-15  
+**最后更新**：2026-07-07
 **负责人**：@dev
 
 ---
@@ -13,7 +13,7 @@
 - **基础路径**：`/api`
 - **OpenAPI JSON**：`/v3/api-docs`
 - **Swagger UI**：`/swagger-ui.html`
-- **认证方式**：商品查询接口公开访问；商品新增、更新、删除接口必须携带 ADMIN 角色 `Authorization: Bearer <accessToken>`；购物车和订单接口必须携带 USER 或 ADMIN 角色 `Authorization: Bearer <accessToken>`
+- **认证方式**：商品查询接口公开访问；商品新增、更新、删除接口必须携带 ADMIN 角色 `Authorization: Bearer <accessToken>`；购物车、订单、个人中心和地址簿接口必须携带 USER 或 ADMIN 角色 `Authorization: Bearer <accessToken>`
 - **内容类型**：`application/json`
 - **统一响应**：`{ "code": 200, "message": "success", "data": ..., "page": null }`
 - **分页响应**：分页接口会额外返回 `page` 元信息；为兼容既有前端，`data` 中仍保留分页对象。
@@ -73,6 +73,7 @@ GET /api/products?category=数码配件&page=1&pageSize=6
 
 | 方法 | 路径 | 描述 | 请求体 |
 |------|------|------|--------|
+| POST | `/api/auth/register` | 用户注册并签发 access token 与 refresh token | `{ "username": "new_user", "password": "new12345", "nickname": "新用户", "phone": "13700000000" }` |
 | POST | `/api/auth/login` | 用户登录并签发 access token 与 refresh token | `{ "username": "demo", "password": "demo123" }` |
 | POST | `/api/auth/refresh` | 使用 refresh token 轮换新令牌 | `{ "refreshToken": "..." }` |
 
@@ -89,6 +90,12 @@ GET /api/products?category=数码配件&page=1&pageSize=6
 | `userId` | Number | 用户 ID |
 | `username` | String | 用户名 |
 | `nickname` | String | 用户昵称 |
+
+**注册安全规则**：
+
+- `username` 仅允许 4-20 位字母、数字和下划线，服务端使用参数绑定 SQL 查询和插入，防止 SQL 注入。
+- `password` 长度为 6-64 位，服务端使用 BCrypt 加盐哈希保存，接口响应不会返回密码字段。
+- `phone` 若填写必须符合中国大陆手机号格式。
 
 **调用受保护接口示例**：
 
@@ -111,14 +118,44 @@ Authorization: Bearer eyJ...
 |------|------|------|--------|
 | GET | `/api/cart` | 查询购物车 | — |
 | POST | `/api/cart/items` | 加入购物车 | `{ "productId": 1, "quantity": 2 }` |
-| PUT | `/api/cart/items/{id}` | 修改购物车数量 | `{ "quantity": 3 }` |
+| PUT | `/api/cart/items/{id}` | 修改购物车数量或选中状态 | `{ "quantity": 3, "selected": true }` |
 | DELETE | `/api/cart/items/{id}` | 删除购物车明细 | — |
 
-**购物车响应字段**：`items`、`totalQuantity`、`totalAmount`
+**购物车响应字段**：`items`、`totalQuantity`、`totalAmount`、`selectedQuantity`、`selectedAmount`
 
-**购物车明细字段**：`id`、`productId`、`productName`、`category`、`price`、`quantity`、`stock`、`imageUrl`、`subtotal`
+**购物车明细字段**：`id`、`productId`、`productName`、`category`、`price`、`quantity`、`selected`、`stock`、`imageUrl`、`subtotal`
+
+> 购物车按 `created_at DESC, id DESC` 倒序返回。`POST /api/orders` 仅使用 `selected=true` 的购物车明细生成订单，并只删除已选明细，未选商品保留在购物车。
 
 > 购物车接口均需要登录令牌。
+
+---
+
+## 个人中心接口
+
+| 方法 | 路径 | 描述 | 请求体 |
+|------|------|------|--------|
+| GET | `/api/users/me` | 查询当前用户资料、积分和订单数量 | — |
+| PUT | `/api/users/me/password` | 修改当前用户登录密码 | `{ "oldPassword": "demo123", "newPassword": "new12345" }` |
+
+**个人中心响应字段**：`userId`、`username`、`nickname`、`phone`、`role`、`points`、`orderCount`
+
+> 修改密码会校验原密码，使用 BCrypt 保存新密码，并撤销当前用户全部 refresh token。
+
+---
+
+## 收货地址接口
+
+| 方法 | 路径 | 描述 | 请求体 |
+|------|------|------|--------|
+| GET | `/api/addresses` | 查询当前用户收货地址列表 | — |
+| POST | `/api/addresses` | 新增收货地址 | `{ "receiverName": "张三", "receiverPhone": "13800000000", "receiverAddress": "上海市", "defaultAddress": true }` |
+| PUT | `/api/addresses/{id}` | 更新收货地址 | 同新增地址请求体 |
+| DELETE | `/api/addresses/{id}` | 删除收货地址 | — |
+
+**地址响应字段**：`id`、`receiverName`、`receiverPhone`、`receiverAddress`、`defaultAddress`
+
+> 地址簿数据持久化在 `user_address` 表中，所有查询和变更均按当前登录用户隔离。新增第一个地址时会自动设为默认地址；新增或更新默认地址时，会清除同用户其他默认地址标记。
 
 ---
 
@@ -150,6 +187,7 @@ Authorization: Bearer eyJ...
 **订单提交幂等规则**：
 
 - `POST /api/orders` 必须携带 `Idempotency-Key` 请求头，同一次客户端提交重试必须使用同一个值。
+- 订单只会包含当前用户购物车中 `selected=true` 的商品；若未选择任何商品，返回 `code=400`。
 - 同一用户、同一 `Idempotency-Key` 且请求体一致时，重复请求返回同一笔订单，不重复扣减库存。
 - 同一用户、同一 `Idempotency-Key` 但请求体不一致时，返回 `code=409`。
 - 首次请求仍在处理中时，重复请求返回 `code=409`，提示稍后重试。
@@ -182,7 +220,11 @@ Authorization: Bearer eyJ...
 | 场景 | 请求 | 预期 |
 |------|------|------|
 | 登录成功 | `POST /api/auth/login`，用户名密码正确 | `code=200`，返回 `accessToken`、`refreshToken`、`role` |
+| 注册成功 | `POST /api/auth/register`，用户名未占用且参数合法 | `code=200`，返回登录令牌 |
 | 刷新令牌成功 | `POST /api/auth/refresh`，refresh token 有效 | `code=200`，轮换新的 `accessToken` 与 `refreshToken` |
+| 修改密码成功 | USER token + `PUT /api/users/me/password`，原密码正确 | `code=200`，refresh token 被撤销 |
+| 新增地址成功 | USER token + `POST /api/addresses`，合法地址请求体 | `code=200`，返回地址详情 |
+| 购物车取消选中 | USER token + `PUT /api/cart/items/{id}`，`selected=false` | `code=200`，`selectedAmount` 重新计算 |
 | 商品新增成功 | ADMIN token + `POST /api/products/add`，合法 JSON | `code=200`，`message=新增商品成功` |
 | 商品新增未登录 | `POST /api/products/add`，不带 token | `code=401` |
 | 商品新增无权限 | USER token + `POST /api/products/add`，合法 JSON | `code=403` |
@@ -207,6 +249,7 @@ Authorization: Bearer eyJ...
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |------|------|----------|--------|
+| v2.3 | 2026-07-07 | 新增用户注册、个人中心、修改密码、收货地址接口；购物车支持选中状态和按添加时间倒序，下单仅消费已选商品 | @dev |
 | v2.2 | 2026-06-15 | 增加 SpringDoc OpenAPI 地址、Swagger UI 地址和部署文档链接，补充错误码说明 | @dev |
 | v2.1 | 2026-06-15 | 新增 `/api/products/cache/metrics` 商品缓存指标接口，用于记录缓存命中率验证数据 | @dev |
 | v2.0 | 2026-06-15 | 登录响应扩展 access token、refresh token、过期时间和角色字段；新增 `/api/auth/refresh`；商品写接口改为 ADMIN 权限 | @dev |

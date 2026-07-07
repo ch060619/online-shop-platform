@@ -102,6 +102,11 @@ a {
   width: 100%;
 }
 
+.auth-mode {
+  width: 100%;
+  margin-bottom: 18px;
+}
+
 .toolbar {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) 160px 150px 150px 96px;
@@ -201,7 +206,8 @@ a {
 
 .detail-info,
 .checkout-form,
-.order-address {
+.order-address,
+.info-panel {
   padding: 20px;
   border: 1px solid #d8e0ec;
   border-radius: 8px;
@@ -209,9 +215,15 @@ a {
 }
 
 .detail-info h1,
-.section-title h1 {
+.section-title h1,
+.info-panel h2 {
   margin: 0;
   font-size: 24px;
+}
+
+.info-panel h2 {
+  margin-bottom: 16px;
+  font-size: 20px;
 }
 
 .detail-info p,
@@ -262,6 +274,17 @@ a {
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: 18px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 18px;
+}
+
+.section-title.compact h2 {
+  margin: 0;
+  font-size: 20px;
 }
 
 .order-address {
@@ -316,7 +339,8 @@ a {
 
   .toolbar,
   .detail-page,
-  .checkout-grid {
+  .checkout-grid,
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 

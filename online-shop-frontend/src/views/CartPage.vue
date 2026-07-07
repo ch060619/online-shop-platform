@@ -4,10 +4,15 @@
       <h1>购物车</h1>
       <div class="button-row">
         <el-button :disabled="!cartStore.items.length" @click="clearCart">清空购物车</el-button>
-        <el-button type="primary" :disabled="!cartStore.items.length" @click="$router.push('/checkout')">去结算</el-button>
+        <el-button type="primary" :disabled="!cartStore.selectedItems.length" @click="$router.push('/checkout')">去结算</el-button>
       </div>
     </div>
     <el-table v-loading="cartStore.loading" :data="cartStore.items" empty-text="购物车为空">
+      <el-table-column label="选中" width="80">
+        <template #default="{ row }">
+          <el-checkbox :model-value="row.selected !== false" @change="(checked) => updateSelected(row, checked)" />
+        </template>
+      </el-table-column>
       <el-table-column label="商品" min-width="260">
         <template #default="{ row }">
           <div class="table-product">
@@ -33,8 +38,8 @@
       </el-table-column>
     </el-table>
     <div class="summary-bar">
-      <span>共 {{ cartStore.totalQuantity }} 件</span>
-      <strong>合计 ￥{{ cartStore.formattedTotalAmount }}</strong>
+      <span>共 {{ cartStore.totalQuantity }} 件，已选 {{ cartStore.selectedQuantity }} 件</span>
+      <strong>已选合计 ￥{{ cartStore.formattedSelectedAmount }}</strong>
     </div>
   </section>
 </template>
@@ -48,6 +53,10 @@ const cartStore = useCartStore()
 
 const updateItem = async (id, quantity) => {
   await cartStore.updateItem(id, quantity)
+}
+
+const updateSelected = async (row, selected) => {
+  await cartStore.updateSelected(row, selected)
 }
 
 const removeItem = async (id) => {

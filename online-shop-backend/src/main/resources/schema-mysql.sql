@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `user` (
     `nickname` VARCHAR(50) NOT NULL,
     `phone` VARCHAR(30),
     `role` VARCHAR(20) NOT NULL DEFAULT 'USER',
+    `points` INT NOT NULL DEFAULT 0,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -40,11 +41,25 @@ CREATE TABLE IF NOT EXISTS `cart_item` (
     `user_id` BIGINT NOT NULL,
     `product_id` BIGINT NOT NULL,
     `quantity` INT NOT NULL,
+    `selected` TINYINT(1) NOT NULL DEFAULT 1,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_cart_user_product` (`user_id`, `product_id`),
     KEY `idx_cart_item_user_id_id` (`user_id`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `user_address` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `receiver_name` VARCHAR(64) NOT NULL,
+    `receiver_phone` VARCHAR(32) NOT NULL,
+    `receiver_address` VARCHAR(255) NOT NULL,
+    `default_address` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_user_address_user` (`user_id`, `default_address`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `orders` (

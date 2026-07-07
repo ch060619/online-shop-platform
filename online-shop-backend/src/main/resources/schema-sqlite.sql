@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS user (
     nickname TEXT NOT NULL,
     phone TEXT,
     role TEXT NOT NULL DEFAULT 'USER',
+    points INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -33,9 +34,21 @@ CREATE TABLE IF NOT EXISTS cart_item (
     user_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
+    selected INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (user_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_address (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    receiver_name TEXT NOT NULL,
+    receiver_phone TEXT NOT NULL,
+    receiver_address TEXT NOT NULL,
+    default_address INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -70,6 +83,8 @@ CREATE INDEX IF NOT EXISTS idx_product_category_id
     ON product (category, id);
 CREATE INDEX IF NOT EXISTS idx_cart_item_user_id_id
     ON cart_item (user_id, id);
+CREATE INDEX IF NOT EXISTS idx_user_address_user
+    ON user_address (user_id, default_address);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id_id
     ON orders (user_id, id);
 CREATE INDEX IF NOT EXISTS idx_orders_status_expire_at

@@ -5,7 +5,10 @@
         <h1>订单详情</h1>
         <p class="muted">{{ order.orderNo }} · {{ order.status }}</p>
       </div>
-      <el-button type="danger" :disabled="order.status !== 'CREATED'" @click="cancelOrder">取消订单</el-button>
+      <div class="button-row">
+        <el-button type="primary" :disabled="order.status !== 'CREATED'" @click="payOrder">支付</el-button>
+        <el-button type="danger" :disabled="order.status !== 'CREATED'" @click="cancelOrder">取消订单</el-button>
+      </div>
     </div>
     <div class="order-address">
       <strong>{{ order.receiverName }}</strong>
@@ -34,11 +37,12 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { orderApi } from '../api'
 
 const route = useRoute()
+const router = useRouter()
 const order = ref(null)
 
 const loadOrder = async () => {
@@ -48,6 +52,12 @@ const loadOrder = async () => {
 const cancelOrder = async () => {
   order.value = await orderApi.cancel(route.params.id)
   ElMessage.success('订单已取消')
+}
+
+const payOrder = async () => {
+  order.value = await orderApi.pay(route.params.id)
+  ElMessage.success('支付完成')
+  router.push(`/order-success/${route.params.id}?paid=1`)
 }
 
 onMounted(loadOrder)

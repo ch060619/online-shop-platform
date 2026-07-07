@@ -14,4 +14,6 @@ public class CartVO {
     private List<CartItemVO> items = new ArrayList<>();
     private Integer totalQuantity = 0;
     private BigDecimal totalAmount = BigDecimal.ZERO;
+    private Integer selectedQuantity = 0;
+    private BigDecimal selectedAmount = BigDecimal.ZERO;
 }

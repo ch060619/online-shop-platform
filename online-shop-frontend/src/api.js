@@ -5,7 +5,8 @@ const cleanParams = (params = {}) => Object.fromEntries(
 )
 
 export const authApi = {
-  login: (data) => request.post('/auth/login', data)
+  login: (data) => request.post('/auth/login', data),
+  register: (data) => request.post('/auth/register', data)
 }
 
 export const productApi = {
@@ -21,8 +22,23 @@ export const cartApi = {
 }
 
 export const orderApi = {
-  create: (data) => request.post('/orders', data),
+  create: (data) => request.post('/orders', data, {
+    headers: { 'Idempotency-Key': crypto.randomUUID() }
+  }),
   list: () => request.get('/orders'),
   detail: (id) => request.get(`/orders/${id}`),
-  cancel: (id) => request.put(`/orders/${id}/cancel`)
+  cancel: (id) => request.put(`/orders/${id}/cancel`),
+  pay: (id) => request.put(`/orders/${id}/pay`)
+}
+
+export const addressApi = {
+  list: () => request.get('/addresses'),
+  add: (data) => request.post('/addresses', data),
+  update: (id, data) => request.put(`/addresses/${id}`, data),
+  remove: (id) => request.delete(`/addresses/${id}`)
+}
+
+export const userApi = {
+  profile: () => request.get('/users/me'),
+  changePassword: (data) => request.put('/users/me/password', data)
 }

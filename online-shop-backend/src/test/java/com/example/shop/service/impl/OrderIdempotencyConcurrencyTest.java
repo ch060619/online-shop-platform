@@ -93,7 +93,7 @@ class OrderIdempotencyConcurrencyTest {
             }
             return OrderIdempotencyDecision.replay(10L);
         });
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail()));
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail()));
         when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
         when(orderMapper.insert(orderCaptor.capture())).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);

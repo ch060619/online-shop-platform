@@ -91,6 +91,9 @@ public class CartServiceImpl implements CartService {
         Product product = requireProduct(item.getProductId());
         ensureStock(product, request.getQuantity());
         cartItemMapper.updateQuantity(itemId, userId, request.getQuantity());
+        if (request.getSelected() != null) {
+            cartItemMapper.updateSelected(itemId, userId, request.getSelected());
+        }
         return getCurrentCart();
     }
 
@@ -130,6 +133,10 @@ public class CartServiceImpl implements CartService {
             cart.getItems().add(itemVO);
             cart.setTotalQuantity(cart.getTotalQuantity() + itemVO.getQuantity());
             cart.setTotalAmount(cart.getTotalAmount().add(itemVO.getSubtotal()));
+            if (Boolean.TRUE.equals(itemVO.getSelected())) {
+                cart.setSelectedQuantity(cart.getSelectedQuantity() + itemVO.getQuantity());
+                cart.setSelectedAmount(cart.getSelectedAmount().add(itemVO.getSubtotal()));
+            }
         }
         return cart;
     }
@@ -142,6 +149,7 @@ public class CartServiceImpl implements CartService {
         vo.setCategory(detail.getCategory());
         vo.setPrice(detail.getPrice());
         vo.setQuantity(detail.getQuantity());
+        vo.setSelected(!Boolean.FALSE.equals(detail.getSelected()));
         vo.setStock(detail.getStock());
         vo.setImageUrl(detail.getImageUrl());
         vo.setSubtotal(detail.getPrice().multiply(BigDecimal.valueOf(detail.getQuantity())));

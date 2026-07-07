@@ -15,5 +15,6 @@ public class User {
     private String nickname;
     private String phone;
     private String role;
+    private Integer points;
     private LocalDateTime createdAt;
 }

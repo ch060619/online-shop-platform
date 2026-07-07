@@ -2,7 +2,7 @@
 
 本文档是项目所有功能的资产登记表，记录每个功能的当前状态、负责人和关联文档。每次功能状态发生变更时，必须同步更新本表。
 
-**最后更新**：2026-06-15
+**最后更新**：2026-07-07
 
 ---
 
@@ -19,6 +19,8 @@
 | 订单 CRUD 管理 | 🟢 已交付 | @dev | [电商购物平台需求](01-product-specs/online-shop-platform-spec.md) | [电商购物平台设计](02-design-docs/online-shop-platform-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-10 |
 | 电商购物平台深挖增强 | 🟢 已交付 | @dev | [深挖增强需求](01-product-specs/online-shop-platform-enhancement-spec.md) | [深挖增强设计](02-design-docs/online-shop-platform-enhancement-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) / [部署说明](04-api-docs/deployment.md) / [核心流程图](04-api-docs/core-flow.md) | 2026-06-15 |
 | 认证刷新令牌与角色权限 | 🟢 已交付 | @dev | [深挖增强需求](01-product-specs/online-shop-platform-enhancement-spec.md) | [深挖增强设计](02-design-docs/online-shop-platform-enhancement-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-06-15 |
+| 用户注册、地址簿与个人中心 | 🟢 已交付 | @dev | [深挖增强需求](01-product-specs/online-shop-platform-enhancement-spec.md) | [深挖增强设计](02-design-docs/online-shop-platform-enhancement-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-07-07 |
+| 购物车选中结算与倒序展示 | 🟢 已交付 | @dev | [深挖增强需求](01-product-specs/online-shop-platform-enhancement-spec.md) | [深挖增强设计](02-design-docs/online-shop-platform-enhancement-design.md) | [电商购物平台 API](04-api-docs/online-shop-api.md) | 2026-07-07 |
 
 ---
 

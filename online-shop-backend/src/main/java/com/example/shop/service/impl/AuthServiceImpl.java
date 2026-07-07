@@ -1,13 +1,18 @@
 package com.example.shop.service.impl;
 
 import com.example.shop.common.TokenService;
+import com.example.shop.common.UserContext;
 import com.example.shop.common.UserRole;
+import com.example.shop.domain.dto.ChangePasswordRequest;
 import com.example.shop.domain.dto.LoginRequest;
 import com.example.shop.domain.dto.RefreshTokenRequest;
+import com.example.shop.domain.dto.RegisterRequest;
 import com.example.shop.domain.entity.RefreshToken;
 import com.example.shop.domain.entity.User;
 import com.example.shop.domain.vo.LoginVO;
+import com.example.shop.domain.vo.UserProfileVO;
 import com.example.shop.exception.BusinessException;
+import com.example.shop.repository.mapper.OrderMapper;
 import com.example.shop.repository.mapper.RefreshTokenMapper;
 import com.example.shop.repository.mapper.UserMapper;
 import com.example.shop.service.AuthService;
@@ -32,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
     private final RefreshTokenMapper refreshTokenMapper;
+    private final OrderMapper orderMapper;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -48,12 +54,14 @@ public class AuthServiceImpl implements AuthService {
      */
     public AuthServiceImpl(UserMapper userMapper,
                            RefreshTokenMapper refreshTokenMapper,
+                           OrderMapper orderMapper,
                            TokenService tokenService,
                            PasswordEncoder passwordEncoder,
                            @Value("${shop.auth.refresh-token-expire-seconds:604800}")
                            long refreshTokenExpireSeconds) {
         this.userMapper = userMapper;
         this.refreshTokenMapper = refreshTokenMapper;
+        this.orderMapper = orderMapper;
         this.tokenService = tokenService;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenExpireSeconds = refreshTokenExpireSeconds;
@@ -72,6 +80,30 @@ public class AuthServiceImpl implements AuthService {
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException(401, "用户名或密码错误");
         }
+        return issueLoginTokens(user);
+    }
+
+    /**
+     * 注册新用户并签发登录令牌。
+     *
+     * @param request 注册请求
+     * @return 登录结果
+     */
+    @Override
+    @Transactional
+    public LoginVO register(RegisterRequest request) {
+        String username = request.getUsername().trim();
+        if (userMapper.findByUsername(username) != null) {
+            throw new BusinessException(409, "用户名已存在");
+        }
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setNickname(request.getNickname().trim());
+        user.setPhone(normalizeBlank(request.getPhone()));
+        user.setRole(UserRole.USER.name());
+        user.setPoints(0);
+        userMapper.insert(user);
         return issueLoginTokens(user);
     }
 
@@ -95,6 +127,45 @@ public class AuthServiceImpl implements AuthService {
         }
         refreshTokenMapper.revokeByTokenHash(tokenHash);
         return issueLoginTokens(user);
+    }
+
+    /**
+     * 查询当前用户个人中心概览。
+     *
+     * @return 个人中心概览
+     */
+    @Override
+    public UserProfileVO profile() {
+        User user = requireCurrentUser();
+        UserProfileVO vo = new UserProfileVO();
+        vo.setUserId(user.getId());
+        vo.setUsername(user.getUsername());
+        vo.setNickname(user.getNickname());
+        vo.setPhone(user.getPhone());
+        vo.setRole(UserRole.from(user.getRole()).name());
+        Integer points = user.getPoints();
+        vo.setPoints(points == null ? Integer.valueOf(0) : points);
+        vo.setOrderCount(orderMapper.countByUserId(user.getId()));
+        return vo;
+    }
+
+    /**
+     * 修改当前用户登录密码。
+     *
+     * @param request 修改密码请求
+     */
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        User user = requireCurrentUser();
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BusinessException(400, "原密码错误");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BusinessException(400, "新密码不能与原密码相同");
+        }
+        userMapper.updatePassword(user.getId(), passwordEncoder.encode(request.getNewPassword()));
+        refreshTokenMapper.revokeByUserId(user.getId());
     }
 
     private LoginVO issueLoginTokens(User user) {
@@ -144,5 +215,20 @@ public class AuthServiceImpl implements AuthService {
         catch (Exception exception) {
             throw new IllegalStateException("无法生成刷新令牌摘要", exception);
         }
+    }
+
+    private User requireCurrentUser() {
+        User user = userMapper.findById(UserContext.getCurrentUserId());
+        if (user == null) {
+            throw new BusinessException(401, "用户不存在或已失效");
+        }
+        return user;
+    }
+
+    private String normalizeBlank(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

@@ -89,7 +89,7 @@ class OrderServiceImplTest {
     void should_createOrder_when_cartStockEnough() {
         LocalDateTime beforeCreate = LocalDateTime.now();
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
         when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
         when(orderMapper.insert(orderCaptor.capture())).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
@@ -101,7 +101,7 @@ class OrderServiceImplTest {
 
         assertThat(orderService.createOrder(createRequest()).getTotalAmount()).isEqualByComparingTo("20.00");
         assertThat(orderCaptor.getValue().getCreatedAt()).isBetween(beforeCreate, LocalDateTime.now());
-        verify(cartItemMapper).deleteByUserId(1L);
+        verify(cartItemMapper).deleteSelectedByUserId(1L);
         verify(orderTimeoutMessagePublisher).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
     }
 
@@ -109,7 +109,7 @@ class OrderServiceImplTest {
     void should_publishTimeoutMessageAfterCommit_when_transactionSynchronizationActive() {
         TransactionSynchronizationManager.initSynchronization();
         try {
-            when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+            when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
             when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
             when(orderMapper.insert(any(Order.class))).thenAnswer(invocation -> {
                 Order order = invocation.getArgument(0);
@@ -134,7 +134,7 @@ class OrderServiceImplTest {
 
     @Test
     void should_keepOrderCreated_when_timeoutMessagePublishFails() {
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
         when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
         when(orderMapper.insert(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
@@ -147,7 +147,7 @@ class OrderServiceImplTest {
                 .when(orderTimeoutMessagePublisher).publishTimeoutMessage(eq(10L), any(LocalDateTime.class));
 
         assertThatCode(() -> orderService.createOrder(createRequest())).doesNotThrowAnyException();
-        verify(cartItemMapper).deleteByUserId(1L);
+        verify(cartItemMapper).deleteSelectedByUserId(1L);
     }
 
     @Test
@@ -156,7 +156,7 @@ class OrderServiceImplTest {
         when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
         when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
                 .thenReturn(OrderIdempotencyDecision.proceed());
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(5)));
         when(productMapper.decreaseStock(1L, 2)).thenReturn(1);
         when(orderMapper.insert(orderCaptor.capture())).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
@@ -215,26 +215,26 @@ class OrderServiceImplTest {
         when(orderIdempotencyService.fingerprint(any(CreateOrderRequest.class))).thenReturn("hash-1");
         when(orderIdempotencyService.begin(1L, "order-key-1", "hash-1"))
                 .thenReturn(OrderIdempotencyDecision.proceed());
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.emptyList());
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> orderService.createOrder(createRequest(), "order-key-1"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("购物车为空");
+                .hasMessageContaining("请选择要结算");
         verify(orderIdempotencyService).clearProcessing(1L, "order-key-1", "hash-1");
     }
 
     @Test
     void should_throwException_when_cartEmpty() {
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.emptyList());
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> orderService.createOrder(createRequest()))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("购物车为空");
+                .hasMessageContaining("请选择要结算");
     }
 
     @Test
     void should_throwException_when_stockNotEnough() {
-        when(cartItemMapper.findDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(1)));
+        when(cartItemMapper.findSelectedDetailsByUserId(1L)).thenReturn(Collections.singletonList(cartDetail(1)));
         when(orderMapper.insert(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             order.setId(10L);

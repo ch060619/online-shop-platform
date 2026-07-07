@@ -4,16 +4,17 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
- * 购物车明细实体。
+ * 用户收货地址实体。
  */
 @Data
-public class CartItem {
+public class UserAddress {
 
     private Long id;
     private Long userId;
-    private Long productId;
-    private Integer quantity;
-    private Boolean selected;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverAddress;
+    private Boolean defaultAddress;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

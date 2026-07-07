@@ -62,4 +62,13 @@ public interface RefreshTokenMapper {
      */
     @Update("UPDATE refresh_token SET revoked = 1 WHERE token_hash = #{tokenHash} AND revoked = 0")
     int revokeByTokenHash(@Param("tokenHash") String tokenHash);
+
+    /**
+     * 撤销用户全部刷新令牌。
+     *
+     * @param userId 用户 ID
+     * @return 影响行数
+     */
+    @Update("UPDATE refresh_token SET revoked = 1 WHERE user_id = #{userId} AND revoked = 0")
+    int revokeByUserId(@Param("userId") Long userId);
 }

@@ -7,6 +7,7 @@ import OrderList from './views/OrderList.vue'
 import OrderDetail from './views/OrderDetail.vue'
 import LoginPage from './views/LoginPage.vue'
 import OrderSuccess from './views/OrderSuccess.vue'
+import ProfilePage from './views/ProfilePage.vue'
 import NotFound from './views/NotFound.vue'
 import { isAuthenticated } from './auth'
 
@@ -22,6 +23,7 @@ const router = createRouter({
     { path: '/order-success/:id', component: OrderSuccess, meta: { requiresAuth: true } },
     { path: '/orders', component: OrderList, meta: { requiresAuth: true } },
     { path: '/orders/:id', component: OrderDetail, meta: { requiresAuth: true } },
+    { path: '/profile', component: ProfilePage, meta: { requiresAuth: true } },
     { path: '/404', component: NotFound },
     { path: '/:pathMatch(.*)*', redirect: '/404' }
   ]

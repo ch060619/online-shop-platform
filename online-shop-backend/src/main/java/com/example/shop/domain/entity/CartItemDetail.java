@@ -13,6 +13,7 @@ public class CartItemDetail {
     private Long userId;
     private Long productId;
     private Integer quantity;
+    private Boolean selected;
     private String productName;
     private String category;
     private BigDecimal price;

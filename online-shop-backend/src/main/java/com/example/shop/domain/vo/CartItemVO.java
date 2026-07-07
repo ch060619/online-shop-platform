@@ -15,6 +15,7 @@ public class CartItemVO {
     private String category;
     private BigDecimal price;
     private Integer quantity;
+    private Boolean selected;
     private Integer stock;
     private String imageUrl;
     private BigDecimal subtotal;

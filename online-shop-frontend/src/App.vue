@@ -6,6 +6,7 @@
         <router-link to="/products">商品</router-link>
         <router-link to="/cart">购物车</router-link>
         <router-link to="/orders">订单</router-link>
+        <router-link v-if="authState.user" to="/profile">我的</router-link>
       </nav>
       <div class="user-area">
         <template v-if="authState.user">

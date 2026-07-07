@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.shop.common.TokenService;
 import com.example.shop.domain.dto.LoginRequest;
 import com.example.shop.domain.dto.RefreshTokenRequest;
+import com.example.shop.domain.dto.RegisterRequest;
 import com.example.shop.domain.vo.LoginVO;
 import com.example.shop.service.AuthService;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,19 @@ class AuthControllerTest {
                         .content("{\"username\":\"\",\"password\":\"\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    void should_returnToken_when_registerValid() throws Exception {
+        when(authService.register(ArgumentMatchers.any(RegisterRequest.class))).thenReturn(loginVO());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"new_user\",\"password\":\"new12345\","
+                                + "\"nickname\":\"新用户\",\"phone\":\"13700000000\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("注册成功"))
+                .andExpect(jsonPath("$.data.accessToken").value("token"));
     }
 
     @Test

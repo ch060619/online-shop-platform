@@ -3,6 +3,7 @@ package com.example.shop.controller;
 import com.example.shop.common.ApiResponse;
 import com.example.shop.domain.dto.LoginRequest;
 import com.example.shop.domain.dto.RefreshTokenRequest;
+import com.example.shop.domain.dto.RegisterRequest;
 import com.example.shop.domain.vo.LoginVO;
 import com.example.shop.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +43,18 @@ public class AuthController {
     @Operation(summary = "用户登录", description = "校验用户名密码，成功后返回 access token 与 refresh token")
     public ApiResponse<LoginVO> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.success("登录成功", authService.login(request));
+    }
+
+    /**
+     * 用户注册。
+     *
+     * @param request 注册请求
+     * @return 注册后的登录结果
+     */
+    @PostMapping("/register")
+    @Operation(summary = "用户注册", description = "创建普通用户并返回登录令牌，密码使用 BCrypt 加盐哈希存储")
+    public ApiResponse<LoginVO> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponse.success("注册成功", authService.register(request));
     }
 
     /**

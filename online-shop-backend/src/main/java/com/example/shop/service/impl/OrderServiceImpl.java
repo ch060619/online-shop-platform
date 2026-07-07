@@ -129,9 +129,9 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderVO createOrderWithoutIdempotency(CreateOrderRequest request) {
         Long userId = UserContext.getCurrentUserId();
-        List<CartItemDetail> cartItems = cartItemMapper.findDetailsByUserId(userId);
+        List<CartItemDetail> cartItems = cartItemMapper.findSelectedDetailsByUserId(userId);
         if (cartItems.isEmpty()) {
-            throw new BusinessException("购物车为空，不能提交订单");
+            throw new BusinessException("请选择要结算的购物车商品");
         }
         BigDecimal totalAmount = calculateTotalAmount(cartItems);
         LocalDateTime now = LocalDateTime.now();
@@ -158,7 +158,7 @@ public class OrderServiceImpl implements OrderService {
             }
             orderItemMapper.insert(toOrderItem(order.getId(), cartItem));
         }
-        cartItemMapper.deleteByUserId(userId);
+        cartItemMapper.deleteSelectedByUserId(userId);
         OrderVO createdOrder = getOrder(order.getId());
         publishTimeoutMessageAfterCommit(order.getId(), order.getExpireAt());
         return createdOrder;

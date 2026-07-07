@@ -237,4 +237,13 @@ public interface OrderMapper {
     @Delete("DELETE FROM orders WHERE id = #{id} AND user_id = #{userId}")
     int deleteByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
+    /**
+     * 统计指定用户订单数。
+     *
+     * @param userId 用户 ID
+     * @return 订单数
+     */
+    @Select("SELECT COUNT(1) FROM orders WHERE user_id = #{userId}")
+    int countByUserId(@Param("userId") Long userId);
+
 }
