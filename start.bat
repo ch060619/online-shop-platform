@@ -65,6 +65,11 @@ exit /b 0
 :docker_mode
 echo.
 echo Starting Docker Compose services: MySQL, Redis, RabbitMQ, backend...
+call :ensure_docker
+if errorlevel 1 (
+    echo Docker is not ready. Cannot start docker mode.
+    exit /b 1
+)
 docker compose up --build -d
 if errorlevel 1 (
     echo Docker Compose startup failed.
@@ -99,10 +104,56 @@ if errorlevel 1 (
     echo Docker was not found. Redis and RabbitMQ must be running on localhost for all V2.0 flows.
     exit /b 0
 )
+call :ensure_docker
+if errorlevel 1 (
+    echo Docker is not ready. Redis and RabbitMQ must be started manually.
+    exit /b 0
+)
 docker compose up -d redis rabbitmq
 if errorlevel 1 (
     echo Could not start Redis/RabbitMQ with Docker. Continuing with local app startup.
 )
+exit /b 0
+
+:ensure_docker
+docker info > nul 2>&1
+if not errorlevel 1 (
+    echo Docker daemon is ready.
+    exit /b 0
+)
+
+echo Docker daemon is not running. Trying to start Docker Desktop...
+call :start_docker_desktop
+if errorlevel 1 exit /b 1
+
+set "DOCKER_ATTEMPTS=0"
+:wait_docker_loop
+docker info > nul 2>&1
+if not errorlevel 1 (
+    echo Docker daemon is ready.
+    exit /b 0
+)
+set /a DOCKER_ATTEMPTS+=1
+if %DOCKER_ATTEMPTS% GEQ 90 (
+    echo Docker daemon is not ready after 90 seconds.
+    exit /b 1
+)
+ping 127.0.0.1 -n 2 > nul
+goto wait_docker_loop
+
+:start_docker_desktop
+set "DOCKER_DESKTOP="
+if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" set "DOCKER_DESKTOP=%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
+if not defined DOCKER_DESKTOP if exist "%LOCALAPPDATA%\Docker\Docker Desktop.exe" set "DOCKER_DESKTOP=%LOCALAPPDATA%\Docker\Docker Desktop.exe"
+if not defined DOCKER_DESKTOP if exist "%ProgramFiles(x86)%\Docker\Docker\Docker Desktop.exe" set "DOCKER_DESKTOP=%ProgramFiles(x86)%\Docker\Docker\Docker Desktop.exe"
+
+if not defined DOCKER_DESKTOP (
+    echo Docker Desktop executable was not found.
+    exit /b 1
+)
+
+echo Starting Docker Desktop: %DOCKER_DESKTOP%
+start "" "%DOCKER_DESKTOP%"
 exit /b 0
 
 :kill_window
